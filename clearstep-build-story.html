@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClearStep — Build Story</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#F7F7F2;
+  --bg2:#EEEEE8;
+  --bg3:#D8D8D0;
+  --text:#222222;
+  --muted:#5A5A52;
+  --accent:#2F6E91;
+  --accent2:#1A4A62;
+  --warn:#8A3A1A;
+  --warn-bg:#FDF5EF;
+  --warn-border:#E8C4A8;
+  --safe:#00875A;
+  --safe-bg:#E6F6F0;
+  --font-display:'Bebas Neue',sans-serif;
+  --font-body:'DM Sans',sans-serif;
+  --font-mono:'DM Mono',monospace;
+}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:1.05rem;line-height:1.75;-webkit-font-smoothing:antialiased;}
+
+/* ── HERO ── */
+.hero{
+  background:var(--accent2);
+  color:#fff;
+  padding:80px 40px 64px;
+  position:relative;
+  overflow:hidden;
+}
+.hero::before{
+  content:'';
+  position:absolute;
+  top:-60px;right:-60px;
+  width:360px;height:360px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.04);
+  pointer-events:none;
+}
+.hero::after{
+  content:'';
+  position:absolute;
+  bottom:-80px;left:10%;
+  width:220px;height:220px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.03);
+  pointer-events:none;
+}
+.hero-inner{max-width:760px;margin:0 auto;position:relative;z-index:1;}
+.hero-label{
+  font-family:var(--font-mono);
+  font-size:0.72rem;
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.55);
+  margin-bottom:16px;
+}
+.hero h1{
+  font-family:var(--font-display);
+  font-size:clamp(3.5rem,10vw,6rem);
+  line-height:0.9;
+  letter-spacing:0.02em;
+  margin-bottom:28px;
+  color:#fff;
+}
+.hero h1 span{color:#7ABFDF;}
+.hero-quote{
+  font-size:1.15rem;
+  font-style:italic;
+  color:rgba(255,255,255,0.75);
+  border-left:3px solid rgba(255,255,255,0.25);
+  padding-left:20px;
+  line-height:1.6;
+  max-width:540px;
+}
+
+/* ── LAYOUT ── */
+.article{max-width:760px;margin:0 auto;padding:64px 40px 100px;}
+
+/* ── SECTION HEADERS ── */
+.section-tag{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-family:var(--font-mono);
+  font-size:0.65rem;
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+  color:var(--accent);
+  background:rgba(47,110,145,0.08);
+  border:1px solid rgba(47,110,145,0.2);
+  border-radius:2px;
+  padding:4px 10px;
+  margin-bottom:14px;
+}
+h2{
+  font-family:var(--font-display);
+  font-size:2.4rem;
+  letter-spacing:0.04em;
+  color:var(--text);
+  line-height:1;
+  margin-bottom:24px;
+}
+h3{
+  font-family:var(--font-display);
+  font-size:1.5rem;
+  letter-spacing:0.04em;
+  color:var(--accent);
+  margin:40px 0 12px;
+}
+
+/* ── PROSE ── */
+p{margin-bottom:20px;color:var(--text);}
+p:last-child{margin-bottom:0;}
+
+/* ── DIVIDER ── */
+.divider{
+  border:none;
+  height:1px;
+  background:linear-gradient(to right,transparent,var(--bg3),transparent);
+  margin:56px 0;
+}
+
+/* ── TIMELINE SECTION ── */
+.timeline{display:flex;flex-direction:column;gap:0;}
+.tl-item{
+  display:grid;
+  grid-template-columns:120px 1fr;
+  gap:0 28px;
+  position:relative;
+}
+.tl-item::before{
+  content:'';
+  position:absolute;
+  left:120px;
+  top:28px;
+  bottom:-1px;
+  width:1px;
+  background:var(--bg3);
+}
+.tl-item:last-child::before{display:none;}
+.tl-date{
+  font-family:var(--font-mono);
+  font-size:0.7rem;
+  color:var(--accent);
+  padding-top:6px;
+  font-weight:500;
+  text-align:right;
+  padding-right:28px;
+  border-right:1px solid var(--bg3);
+  line-height:1.4;
+  padding-bottom:40px;
+}
+.tl-dot{
+  position:absolute;
+  left:115px;
+  top:6px;
+  width:11px;height:11px;
+  border-radius:50%;
+  background:var(--accent);
+  border:2px solid var(--bg);
+}
+.tl-body{padding:0 0 40px 28px;}
+.tl-body h3{margin-top:0;margin-bottom:10px;}
+
+/* ── ERROR CARDS ── */
+.error-grid{display:flex;flex-direction:column;gap:20px;}
+.error-card{
+  background:#fff;
+  border:1px solid var(--bg3);
+  border-left:3px solid var(--warn);
+  border-radius:0 4px 4px 0;
+  padding:22px 24px;
+  transition:box-shadow 0.2s;
+}
+.error-card:hover{box-shadow:0 4px 20px rgba(0,0,0,0.07);}
+.error-card-header{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:12px;
+}
+.error-badge{
+  font-family:var(--font-mono);
+  font-size:0.6rem;
+  letter-spacing:0.15em;
+  text-transform:uppercase;
+  background:var(--warn-bg);
+  color:var(--warn);
+  border:1px solid var(--warn-border);
+  border-radius:2px;
+  padding:3px 8px;
+  flex-shrink:0;
+  margin-top:2px;
+}
+.error-card h4{
+  font-size:0.95rem;
+  font-weight:600;
+  color:var(--text);
+  line-height:1.4;
+}
+.error-card p{
+  font-size:0.9rem;
+  color:var(--muted);
+  margin-bottom:10px;
+}
+.error-card p:last-child{margin-bottom:0;}
+.error-lesson{
+  font-size:0.82rem;
+  color:var(--accent);
+  font-family:var(--font-mono);
+  border-top:1px solid var(--bg3);
+  padding-top:10px;
+  margin-top:10px;
+}
+.error-lesson::before{content:'→ ';opacity:0.6;}
+pre.error-code{
+  background:#1C1F26;
+  color:#7ADABB;
+  font-family:var(--font-mono);
+  font-size:0.8rem;
+  padding:12px 16px;
+  border-radius:4px;
+  margin:10px 0;
+  overflow-x:auto;
+  line-height:1.6;
+}
+
+/* ── LEARNING CALLOUTS ── */
+.learning-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:560px){.learning-grid{grid-template-columns:1fr;}}
+.learning-card{
+  background:var(--bg2);
+  border:1px solid var(--bg3);
+  border-radius:4px;
+  padding:20px;
+}
+.learning-num{
+  font-family:var(--font-display);
+  font-size:2.5rem;
+  color:var(--accent);
+  opacity:0.3;
+  line-height:1;
+  margin-bottom:6px;
+}
+.learning-card p{font-size:0.88rem;color:var(--muted);margin:0;}
+
+/* ── TEAM CARDS ── */
+.team-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+@media(max-width:560px){.team-grid{grid-template-columns:1fr;}}
+.team-card{
+  background:var(--bg2);
+  border:1px solid var(--bg3);
+  border-radius:4px;
+  padding:22px 18px;
+}
+.team-name{
+  font-family:var(--font-display);
+  font-size:1.3rem;
+  color:var(--text);
+  letter-spacing:0.04em;
+  margin-bottom:4px;
+}
+.team-role{
+  font-family:var(--font-mono);
+  font-size:0.65rem;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:12px;
+}
+.team-card p{font-size:0.86rem;color:var(--muted);margin:0;}
+
+/* ── CLOSING ── */
+.closing{
+  background:var(--accent2);
+  color:#fff;
+  border-radius:6px;
+  padding:40px 36px;
+  margin-top:56px;
+}
+.closing p{color:rgba(255,255,255,0.85);margin-bottom:14px;}
+.closing p:last-child{margin:0;font-style:italic;color:rgba(255,255,255,0.6);font-size:0.9rem;}
+
+/* ── STAT ROW ── */
+.stat-row{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:1px;
+  background:var(--bg3);
+  border:1px solid var(--bg3);
+  border-radius:4px;
+  overflow:hidden;
+  margin:32px 0;
+}
+@media(max-width:560px){.stat-row{grid-template-columns:1fr 1fr;}}
+.stat{
+  background:var(--bg2);
+  padding:20px 16px;
+  text-align:center;
+}
+.stat-num{
+  font-family:var(--font-display);
+  font-size:2.2rem;
+  color:var(--accent);
+  line-height:1;
+  display:block;
+  margin-bottom:4px;
+}
+.stat-label{
+  font-family:var(--font-mono);
+  font-size:0.62rem;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+
+/* ── PULL QUOTE ── */
+.pull-quote{
+  border-left:3px solid var(--accent);
+  padding:16px 24px;
+  margin:32px 0;
+  background:rgba(47,110,145,0.05);
+  border-radius:0 4px 4px 0;
+}
+.pull-quote p{
+  font-size:1.05rem;
+  font-style:italic;
+  color:var(--accent2);
+  margin:0;
+  line-height:1.6;
+}
+
+footer{
+  border-top:1px solid var(--bg3);
+  max-width:760px;
+  margin:0 auto;
+  padding:24px 40px;
+  font-family:var(--font-mono);
+  font-size:0.62rem;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  color:var(--muted);
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-label">Microsoft AI Innovation Challenge · March 2026</div>
+    <h1>Clear<span>Step</span><br>Build Story</h1>
+    <p class="hero-quote">"If the user feels panic, the system has failed."</p>
+  </div>
+</div>
+
+<div class="article">
+
+  <!-- STATS -->
+  <div class="stat-row">
+    <div class="stat"><span class="stat-num">11</span><span class="stat-label">Days to build</span></div>
+    <div class="stat"><span class="stat-num">10</span><span class="stat-label">Azure services</span></div>
+    <div class="stat"><span class="stat-num">14+</span><span class="stat-label">Attack vectors</span></div>
+    <div class="stat"><span class="stat-num">28</span><span class="stat-label">Telemetry events</span></div>
+  </div>
+
+  <!-- HOW IT STARTED -->
+  <div class="section-tag">Origin</div>
+  <h2>How This Started</h2>
+  <p>I came into this challenge on March 16th excited and completely lost. I wanted to learn. I wanted to do cybersecurity work: penetration testing a new product, finding vulnerabilities, hardening something someone else built. That was the plan. Leading a team and building a full-stack AI application from scratch was not the plan.</p>
+  <p>The first two days I spent reading documentation, reading the challenge brief, trying to understand what was actually being asked. By the 18th I had finally found someone to join, a senior engineer I desperately needed. But he had one condition: he would not start building unless the team was bigger and the responsibilities were spread out. That told me he had real experience and knew what he was signing up for. It also meant I was back to searching.</p>
+  <p>What followed was the hardest part of the whole experience. Not the code, not the bugs, not the sleepless nights. Finding teammates. I searched through platforms, chats, and channels for days. By March 20th I finally had a third person. The team felt complete. Then at 8PM that same night, the developer left. Time constraints. The team was back to two.</p>
+  <p>Joanne, who had joined as cloud and infrastructure, mentioned someone else who might be able to help. Fatima joined the next day. Three members again, but without a developer, and with the challenge already a third of the way through.</p>
+
+  <div class="pull-quote"><p>I made a decision. I would lead. I would build it myself.</p></div>
+
+  <p>I had no prior experience building a production Flask application. I had never integrated ten Azure services. I had never done prompt engineering under a safety constraint. I chose to do all of it because the alternative was letting the project die, and that was not something I was willing to do.</p>
+
+  <hr class="divider">
+
+  <!-- TIMELINE -->
+  <div class="section-tag">Timeline</div>
+  <h2>What We Built and When</h2>
+
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-date">Mar 20<br>Night</div>
+      <div class="tl-dot"></div>
+      <div class="tl-body">
+        <h3>From zero</h3>
+        <p>The team structure collapsed at 8PM. By the time I made the decision to take over development, it was late. I started from scratch: Flask app, project structure, first working route. The first few hours were spent reading documentation while simultaneously writing code. This is not a comfortable way to learn but it is an effective one.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">Mar 21–22</div>
+      <div class="tl-dot"></div>
+      <div class="tl-body">
+        <h3>The Foundation</h3>
+        <p>Core pipeline took shape. Azure AI Content Safety integration came first — the safety layer had to exist before anything else. Prompt Shields followed. Then Claude. The first time the full pipeline ran end to end and returned a structured JSON response, I understood why people build things.</p>
+        <p>The validator came next. <code style="background:var(--bg2);padding:2px 6px;border-radius:2px;font-family:var(--font-mono);font-size:0.85em;">validate_response()</code> started simple and grew into the most important function in the codebase. Every edge case I discovered went into the validator as a hard enforcement rule. By the end it was handling 12 distinct failure modes independently of the model.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">Mar 22–24</div>
+      <div class="tl-dot"></div>
+      <div class="tl-body">
+        <h3>The Hard Days</h3>
+        <p>File upload was the most complex feature. Not the extraction — that was straightforward with pypdf and python-docx. The security layer around it was the problem. Extension validation, MIME type validation, size checks that couldn't be spoofed via headers, filename sanitisation, then three layers of content screening before any text was returned.</p>
+        <p>The frontend came entirely from scratch. No framework. No build step. Vanilla HTML, CSS, and JavaScript in a single file. The task engine state machine was the hardest frontend problem: four phases, batch delivery, undo at every step, progress tracking.</p>
+        <p>TTS integration happened at 2AM. The first time it spoke back in the correct language without any configuration, I sat there for a minute.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">Mar 25–26</div>
+      <div class="tl-dot"></div>
+      <div class="tl-body">
+        <h3>Security & Documentation</h3>
+        <p>Penetration testing against the live deployed application. I came into this challenge wanting to do security work, and I got to do it. Just on something I built myself. Fourteen attack vectors tested live against the production URL. Every one blocked. The telemetry in App Insights confirmed which safety layers fired on which inputs.</p>
+        <p>Documentation sprint followed. README, ARCHITECTURE, RESPONSIBLE_AI, SECURITY, AZURE_SERVICES, DESIGN_DECISIONS, CONTRIBUTING, CONTRIBUTIONS. Each one written to be accurate to the actual implementation. If a document said something worked, it worked. No aspirational writing.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">Mar 27</div>
+      <div class="tl-dot" style="background:var(--safe);"></div>
+      <div class="tl-body">
+        <h3 style="color:var(--safe);">Submission Day</h3>
+        <p>Presentation, demo video, final deployment verification, submission. The app was live. The pipeline was working. The security held.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ERRORS -->
+  <div class="section-tag">Post-mortem</div>
+  <h2>The Errors We Hit</h2>
+  <p style="color:var(--muted);margin-bottom:28px;">Some of these cost hours. All of them taught something. This is not a cleaned-up version. This is what actually happened.</p>
+
+  <div class="error-grid">
+
+    <div class="error-card">
+      <div class="error-card-header">
+        <span class="error-badge">Deploy</span>
+        <h4>IndentationError at line 608</h4>
+      </div>
+      <p>Gunicorn failed to boot on three consecutive deployments. Each crashed on the same line. The Azure log stream showed the exact line number immediately. The indentation was off by one level — something that happens when editing a 1,400-line file late at night. The fix took thirty seconds. Finding it without the log would have taken much longer.</p>
+      <div class="error-lesson">Trust the Azure logs. They are fast and specific.</div>
+    </div>
+
+    <div class="error-card">
+      <div class="error-card-header">
+        <span class="error-badge">Deploy</span>
+        <h4>ModuleNotFoundError: flask_limiter</h4>
+      </div>
+      <p>Added Flask-Limiter for rate limiting. Deployed. Crashed. Deployed again. Crashed again. Third time. Still crashed. The module was never added to requirements.txt. Azure was building the same broken virtual environment on every deploy because nothing in the build pipeline had changed. Added one line. The next deployment ran clean.</p>
+      <div class="error-lesson">requirements.txt is the build. It is not optional.</div>
+    </div>
+
+    <div class="error-card">
+      <div class="error-card-header">
+        <span class="error-badge">Frontend</span>
+        <h4>selectMode is not defined — JavaScript</h4>
+      </div>
+      <p>The live production app was completely broken. Root cause: a file sync problem. The deployed index.html and the local index.html were different versions. The function existed in one but not the other. It only surfaced in production because local testing used the correct file.</p>
+      <div class="error-lesson">"Works locally" means nothing if the deployed file is different.</div>
+    </div>
+
+    <div class="error-card">
+      <div class="error-card-header">
+        <span class="error-badge">Pipeline</span>
+        <h4>Azure OpenAI silent failure</h4>
+      </div>
+      <p>The Foundry endpoint was returning a JSON structure the parser wasn't expecting. Graceful degradation worked exactly as designed — Layer 2 skipped, Claude ran without signal flags. But that meant results were coming back without detected signals for hours while I debugged something that was not visibly broken. The app worked. The safety held. But the second layer was doing nothing.</p>
+      <div class="error-lesson">Graceful degradation can mask real problems. Telemetry exists precisely for this.</div>
+    </div>
+
+    <div class="error-card">
+      <div class="error-card-header">
+        <span class="error-badge">Security</span>
+        <h4>The .txt MIME bypass</h4>
+      </div>
+      <pre class="error-code">if content_type not in allowed_mimes and ext != '.txt'</pre>
+      <p>That <code style="background:var(--bg2);padding:1px 5px;border-radius:2px;font-family:var(--font-mono);font-size:0.85em;">and ext != '.txt'</code> was a bypass. Any file renamed to .txt would skip MIME validation entirely. Not intentional — it was a defensive coding decision for browsers that omit content-type on plain text, which had mutated into a security hole. Caught during code review, not live testing.</p>
+      <div class="error-lesson">Edge case handling can become a bypass. Review every exception.</div>
+    </div>
+
+    <div class="error-card">
+      <div class="error-card-header">
+        <span class="error-badge">Security</span>
+        <h4>Upload content screening order</h4>
+      </div>
+      <p>The upload screener was truncating to 5,000 characters after running Content Safety on the first 1,000. Content Safety was screening chars 1–1,000, but the full 5,000-character extraction was still being returned. Malicious content in chars 1,001–5,000 went unscreened. The fix: truncate first, then screen the same bounded content.</p>
+      <div class="error-lesson">Both operations existed. Nobody had verified the order.</div>
+    </div>
+
+    <div class="error-card">
+      <div class="error-card-header">
+        <span class="error-badge">Infrastructure</span>
+        <h4>Cosmos DB provisioning gap</h4>
+      </div>
+      <p>The database container existed and the connection was succeeding, but the partition key was misconfigured. Preference reads were failing silently on every request. Graceful degradation was catching the exception and falling back to localStorage without logging anything visible. The app worked. Preferences appeared to save. Nothing was actually persisting to Cosmos DB. Invisible until Joanne ran an infrastructure review.</p>
+      <div class="error-lesson">Graceful degradation is essential for uptime but can hide configuration bugs for a long time.</div>
+    </div>
+
+    <div class="error-card">
+      <div class="error-card-header">
+        <span class="error-badge">Logic</span>
+        <h4>is_medical misclassification</h4>
+      </div>
+      <p>Claude was returning <code style="background:var(--bg2);padding:1px 5px;border-radius:2px;font-family:var(--font-mono);font-size:0.85em;">is_medical: false</code> on clearly medical content — dosing instructions, drug names, disclaimers all present in the output. The keyword backstop was built because of this: if the model returns false but medical keywords are detected anywhere in the output, the validator overrides to true unconditionally.</p>
+      <div class="error-lesson">A prompt is a request. The Python validator is a guarantee.</div>
+    </div>
+
+    <div class="error-card">
+      <div class="error-card-header">
+        <span class="error-badge">Logic</span>
+        <h4>risk_level Safe with real warnings</h4>
+      </div>
+      <p>Claude was assigning Safe to responses that contained genuine safety warnings. The prompt asked it not to. The model did it anyway. The fix: a logic check in validate_response() — if risk_level is Safe and real warnings exist (excluding the mandatory medical disclaimer), upgrade to Caution and fire telemetry. Runs last, after all processing.</p>
+      <div class="error-lesson">The model cannot assign Safe to content that carries actual safety rules.</div>
+    </div>
+
+    <div class="error-card">
+      <div class="error-card-header">
+        <span class="error-badge">Logic</span>
+        <h4>Warnings leaking into tasks</h4>
+      </div>
+      <p>The model was putting safety instructions into the task list. "Do not crush or chew" as a step. "Never double up on a missed dose" as an action item. These are warnings. Users following task lists do not read them as cautions. They read them as instructions. Pattern matching in the validator moves them to warnings automatically, in Python, regardless of what the model returns.</p>
+      <div class="error-lesson">Tasks and warnings are mutually exclusive. Code enforces this, not prompts.</div>
+    </div>
+
+  </div>
+
+  <hr class="divider">
+
+  <!-- LEARNINGS -->
+  <div class="section-tag">Reflection</div>
+  <h2>What I Learned</h2>
+
+  <div class="learning-grid">
+    <div class="learning-card">
+      <div class="learning-num">01</div>
+      <p>I learned Flask by building a production Flask application. I learned Azure by integrating ten Azure services under a deadline.</p>
+    </div>
+    <div class="learning-card">
+      <div class="learning-num">02</div>
+      <p>I learned prompt engineering by writing prompts that had to be deterministic enough to enforce medical safety rules.</p>
+    </div>
+    <div class="learning-card">
+      <div class="learning-num">03</div>
+      <p>The cybersecurity work I came here to do, I did it. Just from the other side — designing the defences, testing them live, reading telemetry to confirm they fired.</p>
+    </div>
+    <div class="learning-card">
+      <div class="learning-num">04</div>
+      <p>What it means to enforce safety in code rather than in prompts. A prompt is a request. Python is a guarantee. The difference matters when users are vulnerable people who cannot afford unpredictability.</p>
+    </div>
+  </div>
+
+  <div class="pull-quote" style="margin-top:32px;"><p>The hardest thing was not technical. It was deciding at 8PM on March 20th to take on something I had not prepared for and to see it through.</p></div>
+
+  <hr class="divider">
+
+  <!-- TEAM -->
+  <div class="section-tag">The Team</div>
+  <h2>Who Built This</h2>
+
+  <div class="team-grid">
+    <div class="team-card">
+      <div class="team-name">Leishka Pagán</div>
+      <div class="team-role">Project Lead · Engineer</div>
+      <p>Architecture, backend, frontend, prompt engineering, security, all documentation. Built the entire application from scratch over 11 days.</p>
+    </div>
+    <div class="team-card">
+      <div class="team-name">Joanne Obodoagwu</div>
+      <div class="team-role">Cloud / DevOps</div>
+      <p>Every Azure resource the application depends on — App Service, Key Vault, Cosmos DB, Foundry, CI/CD. The infrastructure that made the live URL possible.</p>
+    </div>
+    <div class="team-card">
+      <div class="team-name">Fatima Ahmed</div>
+      <div class="team-role">Research · UX</div>
+      <p>Neurodivergent user research that shaped the problem framing. Brought the colour accessibility system to the table — it became one of the most distinctive parts of the product.</p>
+    </div>
+  </div>
+
+  <!-- CLOSING -->
+  <div class="closing">
+    <p>None of this reaches deployment without each person on this team. The live URL, the security that holds, the accessibility system, the documentation that actually reflects what was built — all of it took all three of us.</p>
+    <p>I searched a lot of platforms to find this team. I am glad I did.</p>
+    <p>I need sleep. A few days at minimum. It was worth it.</p>
+  </div>
+
+</div>
+
+<footer>
+  <span>ClearStep · Microsoft AI Innovation Challenge · March 2026</span>
+  <span>Primary engineer: Leishka Pagán · Infrastructure: Joanne Obodoagwu</span>
+</footer>
+
+</body>
+</html>
