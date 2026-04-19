@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One of Us — Investigation, Leishka Pagan</title>
+<meta name="description" content="Malware identification where local antivirus returned clean. Pivoted to VirusTotal multi-engine analysis under restricted-privilege constraints, obtained cryptographic IOCs, and authored a YARA rule so detection no longer depends on signature updates.">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/styles.css">
+
+<style>
+/* ============================================================
+   Investigation detail page — shared template.
+   Same skeleton as the other five detail pages.
+   Candidate for migration into the shared stylesheet later.
+   ============================================================ */
+
+/* -- case header ------------------------------------------------ */
+.case-header { padding: 3rem 0 2rem; border-bottom: 1px solid var(--border); margin-bottom: 3rem; }
+.case-meta { display: flex; flex-wrap: wrap; gap: 1.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1.25rem; }
+.case-meta span::before { content: '▸ '; color: var(--accent); }
+.case-title { font-size: clamp(1.9rem, 3.6vw, 2.6rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 1rem; }
+.case-subtitle { font-size: 1rem; color: var(--text-secondary); line-height: 1.7; max-width: 720px; }
+.back-link { display: inline-flex; align-items: center; gap: 0.4rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+.back-link:hover { color: var(--accent); }
+
+/* -- section rhythm --------------------------------------------- */
+.case-section { padding: 2.5rem 0; border-bottom: 1px solid var(--border); }
+.case-section:last-of-type { border-bottom: none; }
+.case-section h2 { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 1.5rem; }
+.case-section h3 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 0.75rem; color: var(--text); }
+.case-section p { color: var(--text-secondary); line-height: 1.8; margin-bottom: 1rem; max-width: 760px; }
+.case-section code { font-family: 'JetBrains Mono', monospace; font-size: 0.82em; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); padding: 0.1rem 0.4rem; border-radius: 3px; color: var(--text); }
+
+/* -- findings table --------------------------------------------- */
+.findings { display: flex; flex-direction: column; gap: 0.85rem; margin-top: 1.25rem; }
+.finding { display: grid; grid-template-columns: 220px 260px 1fr; gap: 1.5rem; padding: 1.1rem 1.25rem; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; }
+.finding-label { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; align-self: start; padding-top: 0.1rem; }
+.finding-detail { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text); word-break: break-word; align-self: start; padding-top: 0.1rem; }
+.finding-desc { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.7; }
+
+/* -- IOC block -------------------------------------------------- */
+.ioc-block { background: var(--surface); border: 1px solid var(--accent-border); border-radius: 6px; padding: 1.25rem 1.4rem; margin: 1.75rem 0 0.5rem; }
+.ioc-label { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 0.9rem; }
+.ioc-list { list-style: none; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.9; color: var(--text-secondary); word-break: break-all; }
+.ioc-list li strong { color: var(--text); font-weight: 600; margin-right: 0.4rem; }
+
+/* -- tools ------------------------------------------------------ */
+.tools { display: flex; flex-direction: column; gap: 0.65rem; margin-top: 0.5rem; }
+.tool { display: grid; grid-template-columns: 230px 1fr; gap: 1.5rem; padding: 0.85rem 1.1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 5px; }
+.tool-name { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text); font-weight: 500; align-self: start; }
+.tool-desc { font-size: 0.86rem; color: var(--text-secondary); line-height: 1.65; }
+
+/* -- steps ------------------------------------------------------ */
+.steps { display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem; }
+.step { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1.25rem 1.4rem; transition: var(--t-border); }
+.step:hover { border-color: var(--border-hover); }
+.step-head { display: flex; align-items: baseline; gap: 0.85rem; margin-bottom: 0.85rem; flex-wrap: wrap; }
+.step-num { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--accent); font-weight: 600; letter-spacing: 0.08em; }
+.step-title { font-size: 0.98rem; font-weight: 600; color: var(--text); }
+.step-status { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; letter-spacing: 0.05em; padding: 0.15rem 0.55rem; border-radius: 3px; margin-left: auto; }
+.step-status.ok { color: var(--success); background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); }
+.step-status.blocked { color: var(--gate); background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); }
+.step-status.pivot { color: var(--warning); background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); }
+.step-cmd { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text); background: var(--bg); border: 1px solid var(--border); padding: 0.7rem 0.95rem; border-radius: 4px; margin: 0.6rem 0 0.85rem; overflow-x: auto; white-space: pre; line-height: 1.6; }
+.step-why { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.7; }
+.step-why strong { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-right: 0.4rem; }
+
+/* -- pivot callout --------------------------------------------- */
+.pivot-callout { background: linear-gradient(to right, rgba(245, 158, 11, 0.06), transparent 70%); border-left: 3px solid var(--warning); padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-radius: 0 6px 6px 0; }
+.pivot-callout .block-label { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--warning); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 0.5rem; }
+.pivot-callout p { color: var(--text); font-size: 0.92rem; margin: 0; line-height: 1.7; }
+
+/* -- recommendations ------------------------------------------- */
+.recs { display: flex; flex-direction: column; gap: 1.1rem; margin-top: 0.5rem; }
+.rec { padding-left: 1.4rem; border-left: 2px solid var(--accent-border); }
+.rec-title { font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 0.4rem; }
+.rec-body { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.75; }
+
+/* -- technical note -------------------------------------------- */
+.tech-note { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.75rem 1.9rem; margin-top: 1rem; }
+.tech-note .block-label { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 1rem; }
+.tech-note p { max-width: 100%; font-size: 0.92rem; }
+
+/* -- case nav -------------------------------------------------- */
+.case-nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; padding: 2.5rem 0 4rem; margin-top: 2rem; border-top: 1px solid var(--border); }
+.case-nav a { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem; padding: 0.9rem 1.1rem; border: 1px solid var(--border); border-radius: 5px; transition: var(--t-color), var(--t-border), var(--t-bg); }
+.case-nav a:hover { color: var(--accent); border-color: var(--accent-border); background: var(--accent-dim); }
+.case-nav .prev { justify-self: start; }
+.case-nav .index-link { justify-self: center; }
+.case-nav .next { justify-self: end; text-align: right; }
+.case-nav .label { color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 0.15rem; }
+
+/* -- responsive ------------------------------------------------ */
+@media (max-width: 720px) {
+  .finding { grid-template-columns: 1fr; gap: 0.5rem; }
+  .tool { grid-template-columns: 1fr; gap: 0.35rem; }
+  .case-nav { grid-template-columns: 1fr; }
+  .case-nav .prev, .case-nav .index-link, .case-nav .next { justify-self: stretch; text-align: left; }
+  .step-cmd { font-size: 0.72rem; }
+}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<nav class="nav" aria-label="Primary">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo">Leishka Pagan</a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="../investigations.html">Investigations</a>
+      <a href="../experience.html">Experience</a>
+      <a href="../proof.html">Proof</a>
+      <a href="../contact.html">Contact</a>
+    </div>
+  </div>
+</nav>
+
+
+<main id="main">
+<div class="container">
+
+
+<!-- ==========================================================
+     CASE HEADER
+     ========================================================== -->
+<header class="case-header">
+  <a class="back-link" href="../investigations.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="15 18 9 12 15 6"/></svg>
+    All investigations
+  </a>
+
+  <div class="case-meta">
+    <span>Case 02</span>
+    <span>Host Forensics</span>
+    <span>TDX Arena — IR Expert</span>
+    <span>08 / 11 / 2025</span>
+  </div>
+
+  <h1 class="case-title">One of Us</h1>
+  <p class="case-subtitle">A routine IR investigation on a Sea-Snail Security client workstation reached a point where local antivirus returned clean on a file that was producing anomalous behavior. The operational question became: is the file actually safe, or is local AV missing it? Cross-validation through VirusTotal's multi-engine analysis caught what local AV did not. A durable YARA rule derived from the resulting IOCs means the next detection does not depend on a local signature update ever arriving.</p>
+</header>
+
+
+<!-- ==========================================================
+     EXECUTIVE SUMMARY
+     ========================================================== -->
+<section class="case-section">
+  <h2>Executive Summary</h2>
+  <p>Initial containment on the client workstation removed several known threats, but abnormal behavior persisted. Further review surfaced additional dropped files — 272 binaries named <code>File0.exe</code> through <code>File271.exe</code> — in <code>~/Desktop/suspicious-files/</code>. Local antivirus flagged none of them. Given the observed persistence behavior, a local-AV-clean result was not convincing enough to treat the files as safe.</p>
+
+  <p>The analyst session was constrained: the logged-in user (<code>bruce</code>) had no <code>sudo</code>, which ruled out local tool installation and forced reliance on browser-accessible scanners. The ClamAV Web UI refused the bulk upload (25 MB limit, single-file constraint). VirusTotal accepted the zipped set and returned detections across multiple engines on <code>file176.exe</code> — nine engines flagged it, including Avast/AVG labelling it <code>Win32:ShikataGaNai-A [Trj]</code>, Microsoft labelling it <code>Trojan:Script/Wacatac.B!ml</code>, and Fortinet labelling it <code>W32/Swrort.Cltr</code>. Cryptographic hashes (<code>MD5: f48a8687e91fd9ef98cd1b7aaeeb2a4c</code>, <code>SHA-256: 1b7252aa6d8e4f717655de9d3e65edcf25836c5839c4946c521f934be0fdceb0</code>) were extracted for blocklist and hunt use, and a YARA rule derived from those IOCs was authored to make future detection independent of local AV signature freshness.</p>
+</section>
+
+
+<!-- ==========================================================
+     FINDINGS & ANALYSIS
+     ========================================================== -->
+<section class="case-section">
+  <h2>Findings &amp; Analysis</h2>
+
+  <div class="findings">
+
+    <div class="finding">
+      <div class="finding-label">Local AV non-detection</div>
+      <div class="finding-detail">Clean result on<br>live malicious payload</div>
+      <div class="finding-desc">Local antivirus flagged none of the dropped files. Without cross-validation this finding would have been accepted and the compromise extended. The clean result was the signal to escalate, not to stand down.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Malicious file identified</div>
+      <div class="finding-detail">file176.exe<br>(223.19 KB)</div>
+      <div class="finding-desc">Nine of sixty-three VirusTotal engines classified it malicious. Labels cluster around Shikata Ga Nai obfuscation (a polymorphic XOR additive-feedback encoder commonly used to evade signature-based AV) and trojan/Meterpreter families. The label clustering across independent engines is what makes the classification defensible.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Cryptographic IOCs</div>
+      <div class="finding-detail">MD5: f48a8687e9…2a4c<br>SHA-256: 1b7252aa…fdceb0</div>
+      <div class="finding-desc">Hashes uniquely identify the sample for blocklist deployment, cross-environment hunting, and SIEM correlation. Local <code>md5sum</code> / <code>sha256sum</code> confirmed the file on disk matched the VirusTotal-reported hashes — the sample analyzed and the sample on the endpoint are the same bytes.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Dropper behavior</div>
+      <div class="finding-detail">272 files<br>(File0.exe → File271.exe)</div>
+      <div class="finding-desc">The directory count alone is a behavioral tell. Legitimate applications do not drop 272 sequentially-named executables. This is the pattern of a dropper that has already run — consistent with the Shikata Ga Nai family's usual delivery mechanism (initial stager unpacks payloads in memory, can write persistence or additional stages to disk).</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Restricted environment</div>
+      <div class="finding-detail">whoami → bruce<br>sudo -l → no sudo</div>
+      <div class="finding-desc">Session constraint that shaped every subsequent tool choice. No local install, no privileged scans, no sudo-required services. The path through the investigation is a direct function of this constraint — it is not a limitation, it is the environment.</div>
+    </div>
+
+  </div>
+
+  <div class="ioc-block">
+    <div class="ioc-label">IOC quick reference</div>
+    <ul class="ioc-list">
+      <li><strong>File:</strong> /home/bruce/Desktop/suspicious-files/file176.exe</li>
+      <li><strong>Size:</strong> 228550 bytes (223.19 KB)</li>
+      <li><strong>MD5:</strong> f48a8687e91fd9ef98cd1b7aaeeb2a4c</li>
+      <li><strong>SHA-256:</strong> 1b7252aa6d8e4f717655de9d3e65edcf25836c5839c4946c521f934be0fdceb0</li>
+      <li><strong>Family cluster:</strong> Shikata Ga Nai encoded payload (Meterpreter / Swrort / Wacatac labels across independent engines)</li>
+      <li><strong>Secondary artifacts:</strong> 272 dropped binaries in <code>~/Desktop/suspicious-files/</code></li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     TOOLS & TECHNOLOGIES
+     ========================================================== -->
+<section class="case-section">
+  <h2>Tools &amp; Technologies</h2>
+
+  <div class="tools">
+
+    <div class="tool">
+      <div class="tool-name">Local AV (client-installed)</div>
+      <div class="tool-desc">Initial detection path. Returned clean on the dropped-file set. Not failure — an input signal that one detection layer is not sufficient and cross-validation is required.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">ClamAV Web UI</div>
+      <div class="tool-desc">First pivot attempt from a no-sudo session. Refused the bulk upload on a 25 MB single-file limit. A blocked path that still taught something — it narrowed the viable tool set and documented why the next pivot was necessary.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">zip (maximum compression)</div>
+      <div class="tool-desc"><code>zip -r9</code> packaged the entire <code>suspicious-files/</code> directory into a single archive for upload. <code>-r9</code> is recursive with max compression — not speed-critical, but size-critical when every upload target has its own file-size ceiling.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">VirusTotal</div>
+      <div class="tool-desc">Multi-engine reputation and static analysis at the bulk-upload tier. Surfaced the malicious file, produced the cryptographic IOCs, and gave the family-cluster signal (multiple independent engines converging on Shikata Ga Nai labels) that makes the classification defensible.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">md5sum / sha256sum</div>
+      <div class="tool-desc">Local hash generation to verify the file on the endpoint matched the hashes VirusTotal reported. Without this verification step, the IOCs describe a sample that was uploaded — not necessarily the sample still sitting on the host.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">YARA (rule authoring)</div>
+      <div class="tool-desc">Outcome tool, not investigation tool. The YARA rule derived from the captured IOCs is what makes this detection durable — no dependency on local AV vendor signature updates arriving, no dependency on a second VirusTotal submission. The rule runs wherever YARA runs.</div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     INVESTIGATION PROCESS
+     ========================================================== -->
+<section class="case-section">
+  <h2>Investigation Process</h2>
+
+  <p>Six steps. The defining move is step 4 — treating the local-AV-clean result as a signal to escalate rather than a signal to stop. Cross-validation is the skill the case rewards.</p>
+
+
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 01</span>
+        <span class="step-title">Confirm session and privilege constraints</span>
+        <span class="step-status blocked">No sudo</span>
+      </div>
+      <div class="step-cmd">whoami
+sudo -l</div>
+      <p class="step-why"><strong>Why:</strong> Before touching evidence, establish what the session can actually do. User is <code>bruce</code>, no <code>sudo</code>. Every tool decision downstream is a direct function of this — no local install, no privileged scans, no root-required services. Documenting the constraint up front is what lets the report defend every tool choice that follows.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 02</span>
+        <span class="step-title">Attempt web-based AV (ClamAV Web UI)</span>
+        <span class="step-status blocked">25 MB single-file limit</span>
+      </div>
+      <div class="step-cmd"># Navigated to ClamAV Web UI in Chromium
+# Attempted multi-file upload → no multi-select support
+# Fell back to zip archive — blocked by 25 MB limit</div>
+      <p class="step-why"><strong>Why:</strong> Native no-install scanning was the cheapest viable path given the privilege constraint. The block documents why the next pivot was necessary — without this step in the record, the VirusTotal choice looks arbitrary. With it, the choice is the first tool that actually accepts the workload.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 03</span>
+        <span class="step-title">Compress for bulk submission</span>
+        <span class="step-status ok">Archive ready</span>
+      </div>
+      <div class="step-cmd">cd ~/Desktop
+zip -r9 suspicious-files.zip suspicious-files</div>
+      <p class="step-why"><strong>Why:</strong> <code>-r</code> recurses the directory, <code>-9</code> applies maximum compression. A single file upload rather than 272 individual submissions — cheaper on the network, faster through any upload-quota gate, and keeps the entire dropped-file set analyzed together rather than piecemeal.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 04</span>
+        <span class="step-title">Cross-validate through VirusTotal</span>
+        <span class="step-status pivot">9 / 63 flagged — file176.exe</span>
+      </div>
+      <div class="step-cmd"># VirusTotal File upload → suspicious-files.zip
+# VT identified multiple files with positive detections
+# Selected file176.exe — highest detection count, aligned with incident timeline</div>
+      <p class="step-why"><strong>Why:</strong> Local AV returned clean. A second independent detection surface was required to confirm or contradict that result. VT's multi-engine panel provides exactly that — sixty-three engines evaluating the same bytes. Nine positive detections on <code>file176.exe</code>, where the labels cluster around <code>ShikataGaNai</code>, <code>Meterpreter</code>, <code>Swrort</code>, and <code>Wacatac</code> — independent labeling converging on the same malware family is the signal that makes the classification defensible.</p>
+    </div>
+
+
+    <div class="pivot-callout">
+      <div class="block-label">The real skill — treating a clean result as a signal</div>
+      <p>Local AV returning clean is not a failure of the investigation. It is an input the investigator has to interpret. A junior analyst reads <em>clean</em> and stops. A senior analyst reads <em>clean</em> against behavioral evidence — a workstation dropping 272 sequentially-named executables is not the behavior of a clean system — and treats the mismatch as the next lead. The pivot into VirusTotal is not creative; it is procedural. The creative move is refusing to accept a clean-AV result when observed behavior says otherwise, and designing the next step around that mismatch.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 05</span>
+        <span class="step-title">Extract cryptographic IOCs and verify locally</span>
+        <span class="step-status ok">Hashes match</span>
+      </div>
+      <div class="step-cmd">md5sum    /home/bruce/Desktop/suspicious-files/file176.exe
+sha256sum /home/bruce/Desktop/suspicious-files/file176.exe
+
+# Local output:
+# MD5     f48a8687e91fd9ef98cd1b7aaeeb2a4c
+# SHA-256 1b7252aa6d8e4f717655de9d3e65edcf25836c5839c4946c521f934be0fdceb0
+# Match VirusTotal — same bytes</div>
+      <p class="step-why"><strong>Why:</strong> The IOCs VT reports describe the uploaded sample. Local hashing confirms the sample on the endpoint is the same sample VT analyzed. Without that verification, the IOCs are about a copy; with it, they identify the live threat on the host. That distinction matters for every downstream action — blocklist entries, SIEM hunts, incident report references all depend on the hashes being bound to the on-host file, not just the uploaded copy.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 06</span>
+        <span class="step-title">Author YARA rule from IOCs</span>
+        <span class="step-status ok">Durable detection shipped</span>
+      </div>
+      <div class="step-cmd">rule file176_shikata_ga_nai
+{
+    meta:
+        author      = "Leishka Pagan"
+        description = "Detection for file176.exe — Shikata Ga Nai encoded payload"
+        reference   = "VirusTotal multi-engine analysis"
+        md5         = "f48a8687e91fd9ef98cd1b7aaeeb2a4c"
+        sha256      = "1b7252aa6d8e4f717655de9d3e65edcf25836c5839c4946c521f934be0fdceb0"
+
+    condition:
+        filesize == 228550 and
+        hash.md5(0, filesize)    == "f48a8687e91fd9ef98cd1b7aaeeb2a4c" and
+        hash.sha256(0, filesize) == "1b7252aa6d8e4f717655de9d3e65edcf25836c5839c4946c521f934be0fdceb0"
+}</div>
+      <p class="step-why"><strong>Why:</strong> The VirusTotal finding is a moment in time. The YARA rule is a deployable artifact. It runs anywhere YARA runs — endpoint scanners, file-server sweeps, mail-gateway inspection — without depending on a local AV vendor shipping a matching signature. For future instances of the same sample, detection no longer has a vendor dependency. The rule is deliberately written against both MD5 and SHA-256 plus file size, giving redundant matching conditions so a single collision-style manipulation does not evade it.</p>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     RECOMMENDATIONS
+     ========================================================== -->
+<section class="case-section">
+  <h2>Recommendations</h2>
+
+  <div class="recs">
+
+    <div class="rec">
+      <div class="rec-title">Treat AV-clean results as inputs, not conclusions</div>
+      <div class="rec-body">A local-AV-clean result against observed anomalous behavior is not a closed case. It is a mismatch that demands a second detection surface. For workstations with suspected compromise, cross-validation through an independent multi-engine scanner should be a standard step in the IR playbook — not an exception reserved for confirmed detections.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Deploy the YARA rule to the endpoint fleet</div>
+      <div class="rec-body">The rule authored from this investigation identifies the specific sample regardless of whether AV signatures catch up. Push it to endpoint scanners, file-server sweeps, and mail-gateway inspection. A per-sample YARA rule is a small durable asset; a shelf of them over time is a detection library that does not depend on any vendor.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Quarantine the full dropped-file set, not just the identified sample</div>
+      <div class="rec-body">VirusTotal confirmed <code>file176.exe</code>. The 271 other files in the same directory share origin and were not individually exonerated. Quarantine the full set and scan each through YARA rules derived from known-bad samples before returning any of them to the host.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Harden egress and application control</div>
+      <div class="rec-body">Shikata Ga Nai-family payloads typically need network egress (C2 beaconing) and local execution permission to progress past initial delivery. Egress filtering against known C2 infrastructure and application allowlisting on the endpoint cut the attack chain at points where signature-based AV is structurally blind — because neither requires the payload to be correctly classified to be stopped.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Build the dropped-file heuristic into endpoint telemetry</div>
+      <div class="rec-body">A directory accumulating 272 sequentially-named executables is a behavioral indicator that does not depend on classifying any individual file. Endpoint telemetry that flags this pattern — sudden file-count growth in user-writable paths, sequentially-named executables, high file churn — catches dropper behavior before the individual payloads are identified.</div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     TECHNICAL NOTE
+     ========================================================== -->
+<section class="case-section">
+  <h2>Technical Note</h2>
+
+  <div class="tech-note">
+    <div class="block-label">Shikata Ga Nai and why signature-based AV struggles with it</div>
+    <p>Shikata Ga Nai is a polymorphic XOR additive-feedback encoder originally shipped with Metasploit. Every execution of an encoded payload produces a slightly different byte-level artifact — the decoder stub mutates, the key material rotates, the XOR chain advances — even though the decoded payload is identical. Signature-based antivirus detects bytes; an encoder that changes the bytes per generation reliably defeats naïve signatures. Independent research (AT&amp;T Alien Labs, Bitdefender) documents the encoder's continued use for concealing Meterpreter shells, RATs, and ransomware droppers, including the real-world Shikitega family's multi-stage Linux-targeted delivery through a ~370-byte ELF dropper that unpacks successive stages in memory.</p>
+
+    <p>Two implications shape this case. First, the nine-of-sixty-three detection count on VirusTotal is exactly the pattern Shikata Ga Nai produces: the engines with heuristic or behavioral detection catch the sample; engines relying on static byte signatures miss it. That's not a VT quality issue — it's the encoder working as designed. Second, and more operationally important: if signature-based AV is structurally vulnerable to per-generation byte mutation, the detection strategy that stays durable is one grounded in the invariants. Cryptographic hash of the specific observed sample does not mutate across a generation you already have. A YARA rule against the exact bytes you captured will find that exact sample reliably, forever. It will not find the next generation — but the next generation gets a new rule, and the library grows.</p>
+
+    <p>The broader takeaway is that per-sample YARA rule authoring is cheaper than it looks and more durable than vendor signature waiting. Every confirmed malicious sample in an IR investigation should graduate to a YARA rule as a closing step — not as extra work, but as the investigation's deployable artifact.</p>
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     REFERENCES
+     ========================================================== -->
+<section class="case-section">
+  <h2>References</h2>
+
+  <ol class="refs">
+    <li><strong>AT&amp;T Alien Labs — Shikitega: New stealthy malware targeting Linux.</strong> Documents real-world Shikata Ga Nai–encoded dropper behavior, multi-stage in-memory unpacking, and Meterpreter shell delivery. <a href="https://levelblue.com/blogs/labs-research/shikitega-new-stealthy-malware-targeting-linux" target="_blank" rel="noopener">levelblue.com</a></li>
+
+    <li><strong>Bitdefender — New Shikitega Malware Targets Linux and IoT Devices.</strong> Independent analysis of the Shikitega family including the ~370-byte ELF dropper, cryptominer delivery path, and persistence mechanisms. <a href="https://www.bitdefender.com/en-us/blog/hotforsecurity/new-shikitega-malware-targets-linux-and-iot-devices-researchers-find" target="_blank" rel="noopener">bitdefender.com</a></li>
+
+    <li><strong>YARA documentation — Writing rules.</strong> Reference for YARA rule syntax including the <code>hash</code> module used in the authored rule and the condition patterns that combine hashes with filesize for redundant matching. <a href="https://yara.readthedocs.io/en/stable/writingrules.html" target="_blank" rel="noopener">yara.readthedocs.io</a></li>
+
+    <li><strong>VirusTotal.</strong> Multi-engine reputation and static analysis service used to identify <code>file176.exe</code> and produce the IOCs the YARA rule was derived from. <a href="https://www.virustotal.com" target="_blank" rel="noopener">virustotal.com</a></li>
+  </ol>
+</section>
+
+
+<!-- ==========================================================
+     BOTTOM NAV
+     ========================================================== -->
+<nav class="case-nav" aria-label="Investigation navigation">
+  <a class="prev" href="imperial-memory.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
+    <span>
+      <span class="label">Previous case</span>
+      Imperial Memory — Memory Forensics
+    </span>
+  </a>
+
+  <a class="index-link" href="../investigations.html">Index</a>
+
+  <a class="next" href="pig-rules.html">
+    <span>
+      <span class="label">Next case</span>
+      Pig Rules — Network IDS Engineering
+    </span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+  </a>
+</nav>
+
+
+</div>
+</main>
+
+
+<footer class="container">
+  <p>&copy; 2026 Leishka Pagan</p>
+</footer>
+
+
+<script src="../assets/js/main.js" defer></script>
+</body>
+</html>

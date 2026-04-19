@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leishka Pagan, Security & Cloud Infrastructure Engineer</title>
+<meta name="description" content="Security engineer building the systems security depends on. Production AI security systems on Azure. 9+ years enterprise infrastructure and identity.">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<nav class="nav" aria-label="Primary">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">Leishka Pagan</a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="investigations.html">Investigations</a>
+      <a href="experience.html">Experience</a>
+      <a href="proof.html">Proof</a>
+      <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</nav>
+
+<main id="main">
+
+
+<!-- ==========================================================
+     HERO
+     ========================================================== -->
+<div class="container">
+<section class="hero" aria-labelledby="hero-name">
+
+  <h1 class="hero-name" id="hero-name">Leishka Pagan</h1>
+  <div class="hero-title">Security &amp; Cloud Infrastructure Engineer</div>
+
+  <p class="hero-tagline">I'm a security engineer who builds the systems security depends on, not just to detect issues, but to prove what is real and eliminate what isn't.</p>
+
+  <div class="hero-availability">
+    <span class="dot" aria-hidden="true"></span>
+    Open to Cloud Security, Detection Engineering, and AI Security roles. LA / OC or Remote.
+  </div>
+
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="assets/docs/resume.pdf" download>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download Resume
+    </a>
+    <a class="btn btn-secondary" href="contact.html">Contact</a>
+  </div>
+
+  <div class="hero-stats" role="list">
+    <div role="listitem">
+      <div class="stat-val">9+</div>
+      <div class="stat-label">Years Enterprise<br>Experience</div>
+    </div>
+    <div role="listitem">
+      <div class="stat-val">5,400+</div>
+      <div class="stat-label">Users Supported<br>at Enterprise Scale</div>
+    </div>
+    <div role="listitem">
+      <div class="stat-val">3</div>
+      <div class="stat-label">AI Security Systems<br>Built &amp; Shipped</div>
+    </div>
+    <div role="listitem">
+      <div class="stat-val">3rd</div>
+      <div class="stat-label">Microsoft AI Innovation<br>Challenge, March 2026</div>
+    </div>
+  </div>
+
+</section>
+</div>
+
+<hr class="section-divider">
+
+
+<!-- ==========================================================
+     SYSTEMS
+     Sentinel, ClearStep, AXIOM
+     Each: Problem / Approach / Proof / Constraints / Stack / Links
+     ========================================================== -->
+<div class="container">
+<section id="systems" aria-labelledby="systems-heading">
+
+  <div class="section-label mono" id="systems-heading">Systems</div>
+  <p class="section-lead">Three production AI security systems. Each exists because an assumption was failing somewhere, and the fix needed to be enforced in code, not in a prompt.</p>
+
+  <div class="systems-grid">
+
+
+    <!-- =========== SENTINEL =========== -->
+    <article class="system-card fade-in" aria-labelledby="sentinel-title">
+      <h3 id="sentinel-title">Sentinel</h3>
+
+      <div class="system-block">
+        <div class="block-label mono">Problem</div>
+        <div class="block-body">Pattern-based vulnerability scanners produce unverified findings at volume. Analysts spend hours validating low-confidence alerts that should have been rejected at the source.</div>
+      </div>
+
+      <div class="system-block">
+        <div class="block-label mono">Approach</div>
+        <div class="block-body">A multi-agent system that treats vulnerability research as a hypothesis-testing loop. Agents generate findings, probe them against live targets, and record the actual response. A formal state machine then classifies each finding, no result reaches a report until the evidence justifies the claim.</div>
+      </div>
+
+      <div class="diagram" role="img" aria-label="Sentinel flow: agents generate findings, probe targets, record evidence. A state machine gate classifies each finding as confirmed, refuted, or inconclusive. Only classified findings reach the Report output.">
+        <svg viewBox="0 0 700 230" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arr-sentinel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 Z" fill="#3b82f6"/>
+            </marker>
+          </defs>
+
+          <!-- Row 1 -->
+          <rect class="node-box" x="10" y="20" width="150" height="50" rx="6"/>
+          <text class="node-label" x="85" y="44" text-anchor="middle">Agent generates</text>
+          <text class="node-sub" x="85" y="60" text-anchor="middle">finding</text>
+
+          <line class="arrow" x1="162" y1="45" x2="198" y2="45" marker-end="url(#arr-sentinel)"/>
+
+          <rect class="node-box" x="200" y="20" width="150" height="50" rx="6"/>
+          <text class="node-label" x="275" y="44" text-anchor="middle">Probe live target</text>
+          <text class="node-sub" x="275" y="60" text-anchor="middle">HTTP / response</text>
+
+          <line class="arrow" x1="352" y1="45" x2="388" y2="45" marker-end="url(#arr-sentinel)"/>
+
+          <!-- Gate: state machine classification -->
+          <rect class="gate-box" x="390" y="14" width="170" height="62" rx="6"/>
+          <text class="gate-label" x="475" y="34" text-anchor="middle">Gate</text>
+          <text class="node-label" x="475" y="52" text-anchor="middle">State machine</text>
+          <text class="node-sub" x="475" y="68" text-anchor="middle">classifies finding</text>
+
+          <!-- Row 2: three outcomes -->
+          <line class="arrow" x1="440" y1="80" x2="440" y2="112" marker-end="url(#arr-sentinel)"/>
+          <line class="arrow" x1="475" y1="80" x2="475" y2="112" marker-end="url(#arr-sentinel)"/>
+          <line class="arrow" x1="510" y1="80" x2="510" y2="112" marker-end="url(#arr-sentinel)"/>
+
+          <rect class="node-box" x="380" y="115" width="60" height="36" rx="4"/>
+          <text class="node-sub" x="410" y="138" text-anchor="middle" style="fill:#10b981">confirmed</text>
+
+          <rect class="node-box" x="450" y="115" width="52" height="36" rx="4"/>
+          <text class="node-sub" x="476" y="138" text-anchor="middle" style="fill:#a1a1aa">refuted</text>
+
+          <rect class="node-box" x="512" y="115" width="76" height="36" rx="4"/>
+          <text class="node-sub" x="550" y="138" text-anchor="middle" style="fill:#f59e0b">inconclusive</text>
+
+          <!-- Converging arrows into Report output -->
+          <line class="arrow" x1="410" y1="153" x2="460" y2="188" marker-end="url(#arr-sentinel)"/>
+          <line class="arrow" x1="476" y1="153" x2="485" y2="188" marker-end="url(#arr-sentinel)"/>
+          <line class="arrow" x1="550" y1="153" x2="512" y2="188" marker-end="url(#arr-sentinel)"/>
+
+          <!-- Report output box -->
+          <rect class="node-box" x="390" y="190" width="170" height="32" rx="4"/>
+          <text class="node-label" x="475" y="210" text-anchor="middle">Report output</text>
+        </svg>
+      </div>
+
+      <div class="system-block">
+        <div class="block-label mono">Proof</div>
+        <div class="block-body">Every result is classified as <strong>confirmed</strong>, <strong>refuted</strong>, or <strong>inconclusive</strong> based on actual HTTP probe data, not probability scores. Produces evidence-backed JSON and Markdown reports mapped to OWASP ASVS/WSTG and MITRE ATT&amp;CK.</div>
+      </div>
+
+      <div class="constraints">
+        <div class="block-label mono">Constraints</div>
+        <ul>
+          <li>Zero destructive actions enforced at system level, not model level</li>
+          <li>Read-only probing constraints applied before agent dispatch</li>
+          <li>No severity inflation, state machine rejects unverified escalations</li>
+          <li>Targets restricted to authorized VDP scope only</li>
+        </ul>
+      </div>
+
+      <div class="system-stack mono">
+        <span>Python</span>
+        <span>Anthropic Claude API</span>
+        <span>Multi-agent</span>
+        <span>Docker</span>
+        <span>OWASP</span>
+        <span>MITRE ATT&amp;CK</span>
+      </div>
+
+      <div class="system-links">
+        <a class="system-link" href="https://github.com/leishka-pagan/Sentinel" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          View Source
+        </a>
+      </div>
+    </article>
+
+
+    <!-- =========== CLEARSTEP =========== -->
+    <article class="system-card fade-in" aria-labelledby="clearstep-title">
+      <h3 id="clearstep-title">ClearStep</h3>
+
+      <div class="system-block">
+        <div class="block-label mono">Problem</div>
+        <div class="block-body">Prompt-based safety controls are fundamentally unreliable. They can be bypassed, they cannot be audited, and they fail silently. For a tool processing medical and high-risk guidance for vulnerable users, a failed safety layer has real consequences.</div>
+      </div>
+
+      <div class="system-block">
+        <div class="block-label mono">Approach</div>
+        <div class="block-body">A three-layer safety pipeline where every stage is enforced in code. Azure AI Content Safety screens for harm before any LLM is called. Prompt Shields detects jailbreaks at the infrastructure layer. Azure OpenAI extracts five deterministic signals. Anthropic Claude performs final reasoning. <strong>Every response then passes through a Python validation layer</strong> that enforces medical safeguards, frequency expansion, leaked-warning detection, and risk-level logic, regardless of what the model returned.</div>
+      </div>
+
+      <div class="diagram" role="img" aria-label="ClearStep pipeline: user input enters safety screen. If self-harm severity reaches 4 or a prompt injection is detected, the request is blocked and Claude is never called. Otherwise the request reaches Claude for reasoning, and the response passes through a Python validation layer before returning to the user.">
+        <svg viewBox="0 0 700 215" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arr-cs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 Z" fill="#3b82f6"/>
+            </marker>
+            <marker id="arr-cs-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 Z" fill="#ef4444"/>
+            </marker>
+          </defs>
+
+          <!-- Input -->
+          <rect class="node-box" x="10" y="20" width="130" height="44" rx="6"/>
+          <text class="node-label" x="75" y="40" text-anchor="middle">User input</text>
+          <text class="node-sub" x="75" y="56" text-anchor="middle">message or file</text>
+
+          <line class="arrow" x1="142" y1="42" x2="178" y2="42" marker-end="url(#arr-cs)"/>
+
+          <!-- Gate 1: Content Safety -->
+          <rect class="gate-box" x="180" y="12" width="170" height="60" rx="6"/>
+          <text class="gate-label" x="265" y="30" text-anchor="middle">Gate 1</text>
+          <text class="node-label" x="265" y="48" text-anchor="middle">Content Safety</text>
+          <text class="node-sub" x="265" y="64" text-anchor="middle">SelfHarm ≥ 4 blocks</text>
+
+          <line class="arrow" x1="352" y1="42" x2="388" y2="42" marker-end="url(#arr-cs)"/>
+
+          <!-- Gate 2: Prompt Shields -->
+          <rect class="gate-box" x="390" y="12" width="170" height="60" rx="6"/>
+          <text class="gate-label" x="475" y="30" text-anchor="middle">Gate 2</text>
+          <text class="node-label" x="475" y="48" text-anchor="middle">Prompt Shields</text>
+          <text class="node-sub" x="475" y="64" text-anchor="middle">jailbreak blocks</text>
+
+          <!-- Kickback lines showing blocked path -->
+          <path d="M 265 74 Q 265 95 220 95" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr-cs-red)"/>
+          <path d="M 475 74 Q 475 95 430 95" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr-cs-red)"/>
+          <text class="gate-label" x="195" y="100">hardcoded 988</text>
+          <text class="gate-label" x="405" y="100">hard block</text>
+          <text class="node-sub" x="265" y="114" style="fill:#ef4444">Claude never called</text>
+          <text class="node-sub" x="475" y="114" style="fill:#ef4444">Claude never called</text>
+
+          <!-- Pass-through arrow down to Claude layer -->
+          <line class="arrow" x1="475" y1="128" x2="475" y2="152" marker-end="url(#arr-cs)"/>
+
+          <!-- Claude -->
+          <rect class="node-box" x="370" y="155" width="210" height="44" rx="6"/>
+          <text class="node-label" x="475" y="182" text-anchor="middle">Anthropic Claude</text>
+
+          <line class="arrow" x1="370" y1="177" x2="344" y2="177" marker-end="url(#arr-cs)"/>
+
+          <!-- Python validator -->
+          <rect class="gate-box" x="170" y="155" width="170" height="44" rx="6"/>
+          <text class="gate-label" x="255" y="173" text-anchor="middle">Gate 3</text>
+          <text class="node-label" x="255" y="191" text-anchor="middle">Python validator</text>
+
+          <line class="arrow" x1="170" y1="177" x2="144" y2="177" marker-end="url(#arr-cs)"/>
+
+          <!-- Response -->
+          <rect class="node-box" x="10" y="155" width="130" height="44" rx="6"/>
+          <text class="node-label" x="75" y="175" text-anchor="middle">Response</text>
+          <text class="node-sub" x="75" y="191" text-anchor="middle">to user</text>
+        </svg>
+      </div>
+
+      <div class="system-block">
+        <div class="block-label mono">Proof</div>
+        <div class="block-body">Deployed across 10 integrated Azure services. <strong>14 attack vectors tested live</strong> against the production URL, all blocked. 28 custom telemetry events fire across the request lifecycle, producing evidence in App Insights that each safety layer is firing in production, not just designed. <strong>Placed 3rd internationally</strong> in the Microsoft AI Innovation Challenge, March 2026.</div>
+      </div>
+
+      <div class="constraints">
+        <div class="block-label mono">Constraints</div>
+        <ul>
+          <li>SelfHarm severity ≥ 4, hardcoded 988 response, Claude never called</li>
+          <li>Prompt injection attempts, infrastructure-level block, Claude never called</li>
+          <li>Every model output schema-validated, 500 before anything reaches the user</li>
+          <li>Medical content cannot bypass disclaimer, enforced in Python</li>
+          <li>Rate-limited on every write endpoint</li>
+        </ul>
+      </div>
+
+      <div class="system-stack mono">
+        <span>Python</span>
+        <span>Flask</span>
+        <span>Azure (10 services)</span>
+        <span>Azure OpenAI</span>
+        <span>Content Safety</span>
+        <span>Prompt Shields</span>
+        <span>Anthropic Claude</span>
+        <span>Cosmos DB</span>
+      </div>
+
+      <div class="system-links">
+        <a class="system-link" href="https://github.com/leishka-pagan/ClearStep" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          View Source
+        </a>
+        <a class="system-link" href="https://lnkd.in/g9WC38D5" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+          Microsoft Interview
+        </a>
+        <a class="system-link" href="https://lnkd.in/gNwSPfTz" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Build Story
+        </a>
+        <a class="system-link" href="https://lnkd.in/gpNZeAFD" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Demo
+        </a>
+      </div>
+    </article>
+
+
+    <!-- =========== AXIOM =========== -->
+    <article class="system-card fade-in" aria-labelledby="axiom-title">
+      <h3 id="axiom-title">AXIOM</h3>
+
+      <div class="system-block">
+        <div class="block-label mono">Problem</div>
+        <div class="block-body">AI reasoning agents hallucinate attack paths. They promote unverified techniques as validated, mix suggestion with verification, and overwrite confidence with each new response. Operators then act on reasoning that was never evidence-backed, and there is no record of what the system actually knew versus what it guessed.</div>
+      </div>
+
+      <div class="system-block">
+        <div class="block-label mono">Approach</div>
+        <div class="block-body">A five-agent reasoning engine where every technique exists under a controlled trust lifecycle. Agents do not share state directly, all inter-agent communication passes through an <strong>append-only evidence log</strong> enforced at the database layer. A deterministic scoring formula weights execution evidence, source quality, consensus, environment match, recency, and stability. <strong>Shadow reasoning proposals can never auto-promote</strong>, they must re-enter through ingestion, pass scoring, and survive human review before any use.</div>
+      </div>
+
+      <div class="diagram" role="img" aria-label="AXIOM flow: five agents emit evidence records into an append-only log. A scoring engine reads the evidence and produces confidence scores. Techniques can be ingested or unvalidated automatically, but the lab_validated state requires human review, not agent promotion.">
+        <svg viewBox="0 0 700 240" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arr-ax" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 Z" fill="#3b82f6"/>
+            </marker>
+            <marker id="arr-ax-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 Z" fill="#ef4444"/>
+            </marker>
+          </defs>
+
+          <!-- 5 agents (left column) -->
+          <text class="node-sub" x="55" y="14" text-anchor="middle">5 agents</text>
+          <rect class="node-box" x="10" y="20" width="90" height="28" rx="4"/>
+          <text class="node-sub" x="55" y="38" text-anchor="middle">Agent 1</text>
+          <rect class="node-box" x="10" y="52" width="90" height="28" rx="4"/>
+          <text class="node-sub" x="55" y="70" text-anchor="middle">Agent 2</text>
+          <rect class="node-box" x="10" y="84" width="90" height="28" rx="4"/>
+          <text class="node-sub" x="55" y="102" text-anchor="middle">Agent 3</text>
+          <rect class="node-box" x="10" y="116" width="90" height="28" rx="4"/>
+          <text class="node-sub" x="55" y="134" text-anchor="middle">Agent 4</text>
+          <rect class="node-box" x="10" y="148" width="90" height="28" rx="4"/>
+          <text class="node-sub" x="55" y="166" text-anchor="middle">Agent 5</text>
+
+          <!-- Arrows from agents to evidence log -->
+          <line class="arrow" x1="102" y1="34" x2="218" y2="70" marker-end="url(#arr-ax)"/>
+          <line class="arrow" x1="102" y1="66" x2="218" y2="80" marker-end="url(#arr-ax)"/>
+          <line class="arrow" x1="102" y1="98" x2="218" y2="90" marker-end="url(#arr-ax)"/>
+          <line class="arrow" x1="102" y1="130" x2="218" y2="100" marker-end="url(#arr-ax)"/>
+          <line class="arrow" x1="102" y1="162" x2="218" y2="110" marker-end="url(#arr-ax)"/>
+
+          <!-- Append-only evidence log -->
+          <rect class="gate-box" x="220" y="56" width="170" height="72" rx="6"/>
+          <text class="gate-label" x="305" y="76" text-anchor="middle">Append-only</text>
+          <text class="node-label" x="305" y="96" text-anchor="middle">Evidence log</text>
+          <text class="node-sub" x="305" y="114" text-anchor="middle">no UPDATE, no DELETE</text>
+
+          <line class="arrow" x1="392" y1="92" x2="428" y2="92" marker-end="url(#arr-ax)"/>
+
+          <!-- Scoring -->
+          <rect class="node-box" x="430" y="68" width="160" height="48" rx="6"/>
+          <text class="node-label" x="510" y="88" text-anchor="middle">Scoring engine</text>
+          <text class="node-sub" x="510" y="104" text-anchor="middle">evidence + source + consensus</text>
+
+          <!-- Split to states -->
+          <line class="arrow" x1="510" y1="118" x2="510" y2="150" marker-end="url(#arr-ax)"/>
+
+          <!-- Three states: ingested, unvalidated, lab_validated -->
+          <rect class="node-box" x="400" y="155" width="100" height="36" rx="4"/>
+          <text class="node-sub" x="450" y="178" text-anchor="middle">ingested (auto)</text>
+
+          <rect class="node-box" x="510" y="155" width="100" height="36" rx="4"/>
+          <text class="node-sub" x="560" y="178" text-anchor="middle">unvalidated (auto)</text>
+
+          <!-- Lab validated gate - requires human -->
+          <rect class="gate-box" x="170" y="155" width="160" height="60" rx="6"/>
+          <text class="gate-label" x="250" y="173" text-anchor="middle">Human gate</text>
+          <text class="node-label" x="250" y="191" text-anchor="middle">lab_validated</text>
+          <text class="node-sub" x="250" y="207" text-anchor="middle">requires manual approval</text>
+
+          <!-- Red blocked path: auto-states cannot reach the human gate.
+               Line starts from between the two auto-state boxes and travels
+               left toward the human gate, terminating with a red stop marker
+               just before reaching it. -->
+          <line x1="450" y1="195" x2="345" y2="195"
+                stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/>
+          <!-- Red stop marker (X) -->
+          <line x1="337" y1="189" x2="349" y2="201" stroke="#ef4444" stroke-width="2"/>
+          <line x1="349" y1="189" x2="337" y2="201" stroke="#ef4444" stroke-width="2"/>
+          <text class="gate-label" x="395" y="188" text-anchor="middle" style="fill:#ef4444">blocked, no auto-promote</text>
+        </svg>
+      </div>
+
+      <div class="system-block">
+        <div class="block-label mono">Proof</div>
+        <div class="block-body">134 tests. DB-level <code>UPDATE</code>/<code>DELETE</code> triggers block mutation of evidence records. The <code>lab_validated</code> status requires explicit human approval, it is never auto-assigned. Known v1 limitations are documented openly in the repo, not hidden.</div>
+      </div>
+
+      <div class="constraints">
+        <div class="block-label mono">Constraints</div>
+        <ul>
+          <li>Evidence records cannot be updated or deleted, append-only at DB level</li>
+          <li>No agent can promote a technique to <code>lab_validated</code>, human review required</li>
+          <li>Shadow reasoning output is untrusted by default, re-ingestion required</li>
+          <li>Confidence scores derived from evidence, never stored as mutable state</li>
+        </ul>
+      </div>
+
+      <div class="system-stack mono">
+        <span>Python</span>
+        <span>Pydantic</span>
+        <span>SQLite</span>
+        <span>Anthropic Claude API</span>
+        <span>Multi-agent</span>
+        <span>Trust lifecycle</span>
+      </div>
+
+      <div class="system-links">
+        <a class="system-link" href="https://github.com/leishka-pagan/AXIOM" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          View Source
+        </a>
+      </div>
+    </article>
+
+
+  </div>
+</section>
+</div>
+
+<hr class="section-divider">
+
+
+<!-- ==========================================================
+     SELECTED INVESTIGATIONS
+     Imperial Memory + Pig Rules + Mail n' Trail
+     ========================================================== -->
+<div class="container">
+<section id="investigations-teaser" aria-labelledby="investigations-heading">
+
+  <div class="section-label mono" id="investigations-heading">Selected Investigations</div>
+  <p class="section-lead">Host forensics, detection engineering, and end-to-end investigation. Each report documents methodology, command-level detail, and verifiable outcomes.</p>
+
+  <div class="investigations-grid">
+
+    <a class="investigation-card fade-in" href="investigations/imperial-memory.html">
+      <h4>Memory Forensics &amp; Credential Recovery</h4>
+      <p class="inv-desc">Recovered plaintext credentials from Windows volatile memory by pivoting from ASCII string search to UTF-16LE, surfacing the full 7-Zip command line from process memory. Validated extracted artifacts through cryptographic hash verification.</p>
+      <div class="inv-outcome">
+        <strong class="mono">Outcome</strong>
+        <span>Pulled credentials directly from RAM, reconstructed the attacker's full command history, proved evidence integrity through MD5 hash chain.</span>
+      </div>
+      <span class="inv-view mono">View full investigation →</span>
+    </a>
+
+    <a class="investigation-card fade-in" href="investigations/pig-rules.html">
+      <h4>Network Intrusion Detection Engineering</h4>
+      <p class="inv-desc">Analyzed live traffic to isolate anomalous RDP patterns from baseline behavior. Identified a static TCP Window Size of 1024 as the malicious signature, authored a custom Snort rule, validated detection accuracy in Snorby with minimal false positives.</p>
+      <div class="inv-outcome">
+        <strong class="mono">Outcome</strong>
+        <span>Isolated malicious RDP traffic from normal baselines, authored and validated a custom Snort detection rule, minimal false positive rate confirmed.</span>
+      </div>
+      <span class="inv-view mono">View full investigation →</span>
+    </a>
+
+    <a class="investigation-card fade-in" href="investigations/mail-n-trail.html">
+      <h4>Credential Exposure &amp; SIEM Pivot Investigation</h4>
+      <p class="inv-desc">Recovered administrative credentials from an exposed POP3 service using both scripted PowerShell and Telnet approaches. Pivoted into Splunk to trace attacker activity, wrote custom SPL to reduce 3,000+ events to 56 targeted IOCs, decoded Base64 payloads to confirm the compromise.</p>
+      <div class="inv-outcome">
+        <strong class="mono">Outcome</strong>
+        <span>Recovered exposed credentials, reconstructed the full attack chain across mail and SIEM, decoded obfuscated payloads to confirm active compromise.</span>
+      </div>
+      <span class="inv-view mono">View full investigation →</span>
+    </a>
+
+  </div>
+
+  <a class="view-all-link mono" href="investigations.html">
+    View all 7 investigations
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+  </a>
+
+</section>
+</div>
+
+<hr class="section-divider">
+
+
+<!-- ==========================================================
+     EXPERIENCE TEASER
+     ========================================================== -->
+<div class="container">
+<section id="experience-teaser" aria-labelledby="experience-heading">
+
+  <div class="section-label mono" id="experience-heading">Experience</div>
+
+  <div class="teaser fade-in">
+    <p>I spent nine years in enterprise environments where uptime, access control, and system reliability were not theoretical. At Spectrum, I administered identity and access lifecycle for 5,400+ field technicians across ARRIS, CSG, SageQuest, Kronos, Avaya, and Microsoft 365, and served as the final escalation point for 20-40+ incidents daily.</p>
+
+    <p>At Metro Net Fire Authority, I worked inside a controlled-access 24/7 facility supporting 911 dispatch, performed secure extraction of dispatch logs and communications in response to subpoenas within CJIS-aligned workflows, and re-engineered a fragmented QA reporting process into a VBA automation pipeline that reduced manual processing time by 75-80%. That background, where failure disrupts live operations, shaped how I design systems today. Every system I build reflects that accountability.</p>
+
+    <a class="view-all-link mono" href="experience.html">
+      Full experience
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+  </div>
+
+</section>
+</div>
+
+<hr class="section-divider">
+
+
+<!-- ==========================================================
+     PROOF STRIP (compact)
+     ========================================================== -->
+<div class="container">
+<section id="proof-strip" aria-labelledby="proof-heading">
+
+  <div class="section-label mono" id="proof-heading">Proof &amp; Validation</div>
+
+  <div class="proof-strip">
+    <div class="proof-strip-item">
+      <div class="proof-title">CompTIA Security+</div>
+      <div class="proof-sub mono">SY0-701, Active 2026–2029</div>
+    </div>
+    <div class="proof-strip-item">
+      <div class="proof-title">CSULB Cybersecurity Professional</div>
+      <div class="proof-sub mono">ThriveDX, 150+ hands-on labs</div>
+    </div>
+    <div class="proof-strip-item">
+      <div class="proof-title">TDX Arena IR Expert &amp; CyberAdvantage</div>
+      <div class="proof-sub mono">IronCircle, externally graded</div>
+    </div>
+    <div class="proof-strip-item">
+      <div class="proof-title">Microsoft AI Innovation Challenge</div>
+      <div class="proof-sub mono">3rd Internationally, March 2026</div>
+    </div>
+  </div>
+
+  <a class="view-all-link mono" href="proof.html">
+    Full credentials &amp; validation
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+  </a>
+
+</section>
+</div>
+
+<hr class="section-divider">
+
+
+<!-- ==========================================================
+     CONTACT
+     ========================================================== -->
+<div class="container">
+<section id="contact" aria-labelledby="contact-heading">
+
+  <div class="section-label mono" id="contact-heading">Contact</div>
+  <p class="section-lead">Open to Cloud Security, Detection Engineering, and AI Security roles. LA / OC or remote.</p>
+
+  <div class="contact-grid">
+
+    <a class="contact-card" href="mailto:Leishka.pagan1@gmail.com">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      <div>
+        <div class="contact-label mono">Email</div>
+        <div class="contact-value">Leishka.pagan1@gmail.com</div>
+      </div>
+    </a>
+
+    <a class="contact-card" href="https://linkedin.com/in/leishka-pagan" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+      <div>
+        <div class="contact-label mono">LinkedIn</div>
+        <div class="contact-value">leishka-pagan</div>
+      </div>
+    </a>
+
+    <a class="contact-card" href="https://github.com/leishka-pagan" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      <div>
+        <div class="contact-label mono">GitHub</div>
+        <div class="contact-value">leishka-pagan</div>
+      </div>
+    </a>
+
+  </div>
+
+</section>
+</div>
+
+
+</main>
+
+
+<footer class="container">
+  <p>&copy; 2026 Leishka Pagan</p>
+</footer>
+
+
+<!-- Lightbox (reused on proof.html, harmless here) -->
+<div class="lightbox" id="lightbox" aria-hidden="true">
+  <img src="" alt="">
+</div>
+
+<script src="assets/js/main.js" defer></script>
+</body>
+</html>

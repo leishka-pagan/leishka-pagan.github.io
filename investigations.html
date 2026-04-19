@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Investigations, Leishka Pagan</title>
+<meta name="description" content="Six investigations across host forensics, network detection engineering, and application layer analysis. Each report documents methodology, command-level detail, and verified outcomes.">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<nav class="nav" aria-label="Primary">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">Leishka Pagan</a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="investigations.html">Investigations</a>
+      <a href="experience.html">Experience</a>
+      <a href="proof.html">Proof</a>
+      <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</nav>
+
+<main id="main">
+
+
+<!-- ==========================================================
+     PAGE HEADER
+     ========================================================== -->
+<div class="container">
+<section id="investigations-intro" aria-labelledby="investigations-heading">
+
+  <div class="section-label mono" id="investigations-heading">Investigations</div>
+
+  <h1 class="hero-name" style="font-size: clamp(2rem, 4vw, 2.8rem); margin-bottom: 1rem;">Six investigations across host, network, and application layers.</h1>
+
+  <p class="hero-tagline">Each case documents the failure, the pivot, and the verified outcome. Findings were produced in controlled lab environments and through externally graded IR work with IronCircle TDX Arena. Evidence handling, methodology, and command-level detail are preserved in the full reports.</p>
+
+</section>
+</div>
+
+
+<!-- ==========================================================
+     HOST FORENSICS
+     Imperial Memory + One of Us
+     ========================================================== -->
+<div class="container">
+<section id="host-forensics" aria-labelledby="host-forensics-heading">
+
+  <div class="section-label mono" id="host-forensics-heading">Host Forensics</div>
+  <p class="section-lead">Volatile memory, process artifacts, and malware identification where conventional tooling failed.</p>
+
+  <div class="investigations-grid">
+
+
+    <!-- IMPERIAL MEMORY -->
+    <a class="investigation-card fade-in" href="investigations/imperial-memory.html">
+      <h4>Memory Forensics &amp; Credential Recovery</h4>
+      <p class="inv-desc">Standard ASCII string search surfaced nothing useful in the memory dump. Pivoted to UTF-16LE on the hypothesis that Windows process memory preserves command-line strings as wide characters, which surfaced the full 7-Zip command line with credentials inline. Validated extracted artifacts against source files through MD5 hash chain verification before reporting.</p>
+
+      <div class="system-stack mono" style="margin-top: 0.75rem;">
+        <span>Volatility3</span>
+        <span>UTF-16LE pivot</span>
+        <span>7-Zip command recovery</span>
+        <span>MD5 hash verification</span>
+      </div>
+
+      <div class="inv-outcome">
+        <strong class="mono">Outcome</strong>
+        <span>Recovered plaintext credentials from volatile memory, reconstructed the attacker's full command sequence, proved evidence integrity through cryptographic hash chain.</span>
+      </div>
+      <span class="inv-view mono">View full investigation →</span>
+    </a>
+
+
+    <!-- ONE OF US -->
+    <a class="investigation-card fade-in" href="investigations/one-of-us.html">
+      <h4>Malware Identification Where AV Failed</h4>
+      <p class="inv-desc">Local antivirus returned clean on a file that was producing anomalous behavior. Performed static analysis and file hash generation, then cross-referenced against multi-engine threat intelligence. Identified the sample as a known malicious payload that the local AV had missed. Authored a YARA rule derived from the observed indicators so future detection would not depend on signature updates.</p>
+
+      <div class="system-stack mono" style="margin-top: 0.75rem;">
+        <span>Static analysis</span>
+        <span>VirusTotal</span>
+        <span>YARA rule authoring</span>
+        <span>File hash IOCs</span>
+      </div>
+
+      <div class="inv-outcome">
+        <strong class="mono">Outcome</strong>
+        <span>Confirmed malicious identification where local AV returned clean. Produced durable YARA detection rule for future host monitoring.</span>
+      </div>
+      <span class="inv-view mono">View full investigation →</span>
+    </a>
+
+
+  </div>
+</section>
+</div>
+
+<hr class="section-divider">
+
+
+<!-- ==========================================================
+     NETWORK & DETECTION
+     Pig Rules + Samba
+     ========================================================== -->
+<div class="container">
+<section id="network-detection" aria-labelledby="network-detection-heading">
+
+  <div class="section-label mono" id="network-detection-heading">Network &amp; Detection</div>
+  <p class="section-lead">Traffic analysis, rule authoring, and service configuration under controlled access constraints.</p>
+
+  <div class="investigations-grid">
+
+
+    <!-- PIG RULES -->
+    <a class="investigation-card fade-in" href="investigations/pig-rules.html">
+      <h4>Network Intrusion Detection Engineering</h4>
+      <p class="inv-desc">Analyzed live packet capture to isolate anomalous RDP patterns from baseline traffic. Initial hypothesis on port-based signatures was too noisy. Pivoted to TCP header inspection and identified a static TCP Window Size of 1024 as a reliable signature for the malicious traffic. Authored a custom Snort rule targeting that specific header field, validated detection accuracy in Snorby, confirmed low false positive rate against benign traffic.</p>
+
+      <div class="system-stack mono" style="margin-top: 0.75rem;">
+        <span>Wireshark</span>
+        <span>Snort rule authoring</span>
+        <span>TCP header analysis</span>
+        <span>Snorby validation</span>
+      </div>
+
+      <div class="inv-outcome">
+        <strong class="mono">Outcome</strong>
+        <span>Isolated malicious RDP from baseline behavior using a non-obvious header-level signature. Authored and validated a custom detection rule with minimal false positive rate.</span>
+      </div>
+      <span class="inv-view mono">View full investigation →</span>
+    </a>
+
+
+    <!-- SAMBA -->
+    <a class="investigation-card fade-in" href="investigations/samba.html">
+      <h4>SMB Service Misconfiguration Analysis &amp; Access Recovery</h4>
+      <p class="inv-desc">An internal SMB service was failing silently, lecturers could not upload, students could not access. Root-cause analysis surfaced three layered misconfigurations operating against each other, a deprecated authentication mode active alongside a restrictive protocol floor, with user validation silently disabled in the share definition. Ruled out the protocol floor as the cause, the real failure was <code>security = share</code> combined with an orphaned <code>valid users</code> declaration. Restored explicit per-user authentication under least-privilege constraints.</p>
+
+      <div class="system-stack mono" style="margin-top: 0.75rem;">
+        <span>Samba / SMB</span>
+        <span>smb.conf analysis</span>
+        <span>Privilege enumeration</span>
+        <span>Service recovery</span>
+      </div>
+
+      <div class="inv-outcome">
+        <strong class="mono">Outcome</strong>
+        <span>Service restored under explicit per-user authentication. Anonymous and share-level access no longer permitted. Deprecated auth mode eliminated from runtime configuration.</span>
+      </div>
+      <span class="inv-view mono">View full investigation →</span>
+    </a>
+
+
+  </div>
+</section>
+</div>
+
+<hr class="section-divider">
+
+
+<!-- ==========================================================
+     APPLICATION & DATA
+     Mail n' Trail + Oh My Data
+     ========================================================== -->
+<div class="container">
+<section id="application-data" aria-labelledby="application-data-heading">
+
+  <div class="section-label mono" id="application-data-heading">Application &amp; Data</div>
+  <p class="section-lead">Credential exposure, protocol-level exploitation, and SIEM-based attacker activity reconstruction.</p>
+
+  <div class="investigations-grid">
+
+
+    <!-- MAIL N TRAIL -->
+    <a class="investigation-card fade-in" href="investigations/mail-n-trail.html">
+      <h4>Credential Exposure &amp; SIEM Pivot Investigation</h4>
+      <p class="inv-desc">Recovered administrative credentials from an exposed POP3 service using both a scripted PowerShell approach and a direct Telnet session, validating the finding through two independent methods. Pivoted into Splunk and authored custom SPL queries correlating logs across sources, reducing 3,000+ raw events to 56 targeted IOCs. Base64-decoded payloads captured in transit confirmed active exfiltration, closing the full attack chain from exposure to impact.</p>
+
+      <div class="system-stack mono" style="margin-top: 0.75rem;">
+        <span>Splunk (custom SPL)</span>
+        <span>POP3 protocol exploitation</span>
+        <span>Base64 payload decoding</span>
+        <span>Multi-source log correlation</span>
+      </div>
+
+      <div class="inv-outcome">
+        <strong class="mono">Outcome</strong>
+        <span>Recovered exposed credentials. Reconstructed the attack chain across mail and SIEM from 3,000+ events down to 56 IOCs. Decoded obfuscated payloads to confirm active compromise.</span>
+      </div>
+      <span class="inv-view mono">View full investigation →</span>
+    </a>
+
+
+    <!-- OH MY DATA -->
+    <a class="investigation-card fade-in" href="investigations/oh-my-data.html">
+      <h4>Credential Leak Analysis &amp; Active Account Detection</h4>
+      <p class="inv-desc">A breached credentials dump was reported, but no one knew which accounts were still compromised. OSINT traced the leak to a paste site. Reformatted the raw credential format through a Bash sed pipeline to machine-readable input, then reverse-engineered the login API via browser DevTools to capture the exact POST schema. Built a Python credential-testing tool using only standard library, avoiding any external dependency for operational portability. Identified accounts that remained active and validated the compromise.</p>
+
+      <div class="system-stack mono" style="margin-top: 0.75rem;">
+        <span>OSINT</span>
+        <span>Web API reconnaissance</span>
+        <span>Python (stdlib only)</span>
+        <span>Credential validation tooling</span>
+      </div>
+
+      <div class="inv-outcome">
+        <strong class="mono">Outcome</strong>
+        <span>Traced the leak to a paste site, reverse-engineered the authentication API, built standalone tooling to identify still-active compromised accounts post-leak.</span>
+      </div>
+      <span class="inv-view mono">View full investigation →</span>
+    </a>
+
+
+  </div>
+</section>
+</div>
+
+<hr class="section-divider">
+
+
+<!-- ==========================================================
+     FOOTER NAV
+     ========================================================== -->
+<div class="container">
+<section aria-labelledby="what-next-heading" style="padding: 60px 0;">
+  <div class="section-label mono" id="what-next-heading">What's next</div>
+  <p class="section-lead">The systems I built out of what I learned here. Each one addresses a failure mode I saw firsthand in investigative work.</p>
+  <a class="view-all-link mono" href="index.html#systems">
+    View systems
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+  </a>
+</section>
+</div>
+
+
+</main>
+
+
+<footer class="container">
+  <p>&copy; 2026 Leishka Pagan</p>
+</footer>
+
+
+<script src="assets/js/main.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Samba — Investigation, Leishka Pagan</title>
+<meta name="description" content="SMB service misconfiguration analysis and access recovery. Three layered misconfigurations in smb.conf were operating against each other; root cause was security = share combined with an orphaned valid users declaration, not the restrictive protocol floor.">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/styles.css">
+
+<style>
+/* ============================================================
+   Investigation detail page — shared template.
+   Same skeleton as imperial-memory.html. Keep in sync.
+   Candidate for migration into the shared stylesheet later.
+   ============================================================ */
+
+/* -- case header ------------------------------------------------ */
+.case-header { padding: 3rem 0 2rem; border-bottom: 1px solid var(--border); margin-bottom: 3rem; }
+.case-meta { display: flex; flex-wrap: wrap; gap: 1.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1.25rem; }
+.case-meta span::before { content: '▸ '; color: var(--accent); }
+.case-title { font-size: clamp(1.9rem, 3.6vw, 2.6rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 1rem; }
+.case-subtitle { font-size: 1rem; color: var(--text-secondary); line-height: 1.7; max-width: 720px; }
+.back-link { display: inline-flex; align-items: center; gap: 0.4rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+.back-link:hover { color: var(--accent); }
+
+/* -- section rhythm --------------------------------------------- */
+.case-section { padding: 2.5rem 0; border-bottom: 1px solid var(--border); }
+.case-section:last-of-type { border-bottom: none; }
+.case-section h2 { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 1.5rem; }
+.case-section h3 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 0.75rem; color: var(--text); }
+.case-section p { color: var(--text-secondary); line-height: 1.8; margin-bottom: 1rem; max-width: 760px; }
+.case-section code { font-family: 'JetBrains Mono', monospace; font-size: 0.82em; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); padding: 0.1rem 0.4rem; border-radius: 3px; color: var(--text); }
+
+/* -- findings table --------------------------------------------- */
+.findings { display: flex; flex-direction: column; gap: 0.85rem; margin-top: 1.25rem; }
+.finding { display: grid; grid-template-columns: 220px 260px 1fr; gap: 1.5rem; padding: 1.1rem 1.25rem; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; }
+.finding-label { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; align-self: start; padding-top: 0.1rem; }
+.finding-detail { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text); word-break: break-word; align-self: start; padding-top: 0.1rem; }
+.finding-desc { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.7; }
+
+/* -- IOC block -------------------------------------------------- */
+.ioc-block { background: var(--surface); border: 1px solid var(--accent-border); border-radius: 6px; padding: 1.25rem 1.4rem; margin: 1.75rem 0 0.5rem; }
+.ioc-label { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 0.9rem; }
+.ioc-list { list-style: none; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.9; color: var(--text-secondary); word-break: break-all; }
+.ioc-list li strong { color: var(--text); font-weight: 600; margin-right: 0.4rem; }
+
+/* -- tools ------------------------------------------------------ */
+.tools { display: flex; flex-direction: column; gap: 0.65rem; margin-top: 0.5rem; }
+.tool { display: grid; grid-template-columns: 230px 1fr; gap: 1.5rem; padding: 0.85rem 1.1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 5px; }
+.tool-name { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text); font-weight: 500; align-self: start; }
+.tool-desc { font-size: 0.86rem; color: var(--text-secondary); line-height: 1.65; }
+
+/* -- steps ------------------------------------------------------ */
+.steps { display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem; }
+.step { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1.25rem 1.4rem; transition: var(--t-border); }
+.step:hover { border-color: var(--border-hover); }
+.step-head { display: flex; align-items: baseline; gap: 0.85rem; margin-bottom: 0.85rem; flex-wrap: wrap; }
+.step-num { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--accent); font-weight: 600; letter-spacing: 0.08em; }
+.step-title { font-size: 0.98rem; font-weight: 600; color: var(--text); }
+.step-status { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; letter-spacing: 0.05em; padding: 0.15rem 0.55rem; border-radius: 3px; margin-left: auto; }
+.step-status.ok { color: var(--success); background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); }
+.step-status.blocked { color: var(--gate); background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); }
+.step-status.pivot { color: var(--warning); background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); }
+.step-cmd { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text); background: var(--bg); border: 1px solid var(--border); padding: 0.7rem 0.95rem; border-radius: 4px; margin: 0.6rem 0 0.85rem; overflow-x: auto; white-space: pre; line-height: 1.6; }
+.step-why { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.7; }
+.step-why strong { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-right: 0.4rem; }
+
+/* -- pivot callout --------------------------------------------- */
+.pivot-callout { background: linear-gradient(to right, rgba(245, 158, 11, 0.06), transparent 70%); border-left: 3px solid var(--warning); padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-radius: 0 6px 6px 0; }
+.pivot-callout .block-label { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--warning); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 0.5rem; }
+.pivot-callout p { color: var(--text); font-size: 0.92rem; margin: 0; line-height: 1.7; }
+
+/* -- recommendations ------------------------------------------- */
+.recs { display: flex; flex-direction: column; gap: 1.1rem; margin-top: 0.5rem; }
+.rec { padding-left: 1.4rem; border-left: 2px solid var(--accent-border); }
+.rec-title { font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 0.4rem; }
+.rec-body { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.75; }
+
+/* -- technical note -------------------------------------------- */
+.tech-note { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.75rem 1.9rem; margin-top: 1rem; }
+.tech-note .block-label { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 1rem; }
+.tech-note p { max-width: 100%; font-size: 0.92rem; }
+
+/* -- case nav -------------------------------------------------- */
+.case-nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; padding: 2.5rem 0 4rem; margin-top: 2rem; border-top: 1px solid var(--border); }
+.case-nav a { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem; padding: 0.9rem 1.1rem; border: 1px solid var(--border); border-radius: 5px; transition: var(--t-color), var(--t-border), var(--t-bg); }
+.case-nav a:hover { color: var(--accent); border-color: var(--accent-border); background: var(--accent-dim); }
+.case-nav .prev { justify-self: start; }
+.case-nav .index-link { justify-self: center; }
+.case-nav .next { justify-self: end; text-align: right; }
+.case-nav .label { color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 0.15rem; }
+
+/* -- responsive ------------------------------------------------ */
+@media (max-width: 720px) {
+  .finding { grid-template-columns: 1fr; gap: 0.5rem; }
+  .tool { grid-template-columns: 1fr; gap: 0.35rem; }
+  .case-nav { grid-template-columns: 1fr; }
+  .case-nav .prev, .case-nav .index-link, .case-nav .next { justify-self: stretch; text-align: left; }
+  .step-cmd { font-size: 0.72rem; }
+}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<nav class="nav" aria-label="Primary">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo">Leishka Pagan</a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="../investigations.html">Investigations</a>
+      <a href="../experience.html">Experience</a>
+      <a href="../proof.html">Proof</a>
+      <a href="../contact.html">Contact</a>
+    </div>
+  </div>
+</nav>
+
+
+<main id="main">
+<div class="container">
+
+
+<!-- ==========================================================
+     CASE HEADER
+     ========================================================== -->
+<header class="case-header">
+  <a class="back-link" href="../investigations.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="15 18 9 12 15 6"/></svg>
+    All investigations
+  </a>
+
+  <div class="case-meta">
+    <span>Case 04</span>
+    <span>Network &amp; Detection</span>
+    <span>SMB Service Recovery</span>
+  </div>
+
+  <h1 class="case-title">Samba</h1>
+  <p class="case-subtitle">An internal SMB service at Oxfredy University was failing silently — lecturers could not upload, students could not access. Three layered misconfigurations in <code>smb.conf</code> were operating against each other. The restrictive protocol floor looked like the obvious suspect, but was not the cause. The real failure was a deprecated authentication mode still active in the runtime configuration, combined with an orphaned <code>valid users</code> declaration that had been commented out of the share block.</p>
+</header>
+
+
+<!-- ==========================================================
+     EXECUTIVE SUMMARY
+     ========================================================== -->
+<section class="case-section">
+  <h2>Executive Summary</h2>
+  <p>Lecturers reported they could not upload to the <code>[lessons]</code> SMB share. The assigned role was system administrator, not incident responder — the objective was to identify the misconfiguration, correct it, and restore access under appropriate user authentication.</p>
+
+  <p>Review of <code>/etc/samba/smb.conf</code> surfaced three separate problems: <code>server min protocol = SMB3</code> set an unusually high floor; <code>security = share</code> (deprecated, anonymous-access style) was still active in the global section; and the <code>[lessons]</code> share's <code>valid users</code> directive had been commented out, leaving no explicit user authentication for the share. The fix required resolving all three, but only one of them was actually the root cause of the upload failure — and the triage sequence mattered for that reason.</p>
+
+  <p>After corrections and a service restart, the share accepted per-user authenticated access, and the lesson file in the share was recovered and validated.</p>
+</section>
+
+
+<!-- ==========================================================
+     FINDINGS & ANALYSIS
+     ========================================================== -->
+<section class="case-section">
+  <h2>Findings &amp; Analysis</h2>
+
+  <div class="findings">
+
+    <div class="finding">
+      <div class="finding-label">Deprecated auth mode active</div>
+      <div class="finding-detail">security = share</div>
+      <div class="finding-desc">Share-level security was removed from mainline Samba years ago. Its presence in the runtime config permitted anonymous-style share access patterns and made per-user enforcement ambiguous. Root cause of the failure when combined with the next finding.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Orphaned user directive</div>
+      <div class="finding-detail">[lessons] — valid users<br>commented out</div>
+      <div class="finding-desc">The share block declared <code>valid users = %S</code> but the line was commented. With <code>security = share</code> active globally and no explicit per-share user list, the share had no meaningful authentication enforcement path.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Restrictive protocol floor</div>
+      <div class="finding-detail">server min protocol = SMB3</div>
+      <div class="finding-desc">Unusually high floor. Red-herring-looking at first — too restrictive for legacy clients, and the most visually obvious misconfig in the file. <strong>Ruled out</strong> as the cause of the upload failure during triage.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Privileged service control</div>
+      <div class="finding-detail">smbadmin NOPASSWD on<br>service smbd</div>
+      <div class="finding-desc">Confirmed via <code>sudo -l</code>. The assigned user could start, stop, restart, and query the <code>smbd</code> service without a password, which was required to apply the configuration fix and validate the repair.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Recovered lesson file</div>
+      <div class="finding-detail">lessons-11.txt →<br>33e2bb43ea4e40fa8259<br>b203c46e418a</div>
+      <div class="finding-desc">Retrieved from <code>/home/smbuser/share/</code> after corrected configuration and service restart. File contents validated against the expected submission flag.</div>
+    </div>
+
+  </div>
+
+  <div class="ioc-block">
+    <div class="ioc-label">Configuration reference</div>
+    <ul class="ioc-list">
+      <li><strong>Config file:</strong> /etc/samba/smb.conf</li>
+      <li><strong>Share path:</strong> /home/smbuser/share/</li>
+      <li><strong>Service:</strong> smbd (managed via <code>service smbd restart</code>)</li>
+      <li><strong>Authentication target:</strong> smbuser (per-user auth, least privilege)</li>
+      <li><strong>Recovered file:</strong> lessons-11.txt</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     TOOLS & TECHNOLOGIES
+     ========================================================== -->
+<section class="case-section">
+  <h2>Tools &amp; Technologies</h2>
+
+  <div class="tools">
+
+    <div class="tool">
+      <div class="tool-name">sudo -l</div>
+      <div class="tool-desc">Privilege enumeration. Confirmed the scope of allowed commands for the assigned user before attempting any service-level action. The NOPASSWD rule for <code>service smbd</code> was the only privileged path available — knowing that up front shaped what the fix could look like.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">nano + /etc/samba/smb.conf</div>
+      <div class="tool-desc">Direct configuration analysis and editing. The three findings all live in this one file; reading it in full was the difference between fixing the surface-level symptom and fixing the cause.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">service smbd</div>
+      <div class="tool-desc">Service control for applying and validating the configuration change. Restart was required for <code>smb.conf</code> changes to take effect; a failed restart would have indicated a syntax error in the edits before any functional test was run.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">Linux filesystem navigation</div>
+      <div class="tool-desc">Standard <code>cd / ls / cat</code> to validate the corrected share path was reachable, the target file was present, and the lesson content was readable under the new authentication rules.</div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     INVESTIGATION PROCESS
+     ========================================================== -->
+<section class="case-section">
+  <h2>Investigation Process</h2>
+
+  <p>Five steps. The defining move was not any of the fixes — it was deciding, during configuration review, which of three visible misconfigurations was actually responsible for the failure and which were noise.</p>
+
+
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 01</span>
+        <span class="step-title">Verify user privileges</span>
+        <span class="step-status ok">NOPASSWD on smbd</span>
+      </div>
+      <div class="step-cmd">sudo -l</div>
+      <p class="step-why"><strong>Why:</strong> Establish what the assigned user can actually do before touching anything. Response: <code>(root) NOPASSWD: /usr/sbin/service smbd start|stop|restart|status</code>. This defines the scope of the repair — the user can restart the service, but cannot install packages or escalate further.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 02</span>
+        <span class="step-title">Analyze Samba configuration</span>
+        <span class="step-status pivot">Three issues, one cause</span>
+      </div>
+      <div class="step-cmd">nano /etc/samba/smb.conf</div>
+      <p class="step-why"><strong>Why:</strong> Read the config in full. Three candidate issues surfaced: <code>server min protocol = SMB3</code> (restrictive floor), <code>security = share</code> (deprecated auth mode, still active), and <code>[lessons]</code> with <code>valid users = %S</code> commented out. Rather than patching all three as equally suspect, triage which one actually caused the failure.</p>
+    </div>
+
+
+    <div class="pivot-callout">
+      <div class="block-label">Triage — ruling out the obvious</div>
+      <p>The restrictive protocol floor was the most visually conspicuous misconfig and therefore the easy suspect. But a protocol floor that's <em>too high</em> produces a different failure mode — clients unable to negotiate a session at all — not the silent upload-permission failure that was reported. The actual failure pattern matched authentication resolution: <code>security = share</code> was still active globally, which meant share-level (not user-level) enforcement, while the <code>[lessons]</code> share's <code>valid users</code> line was commented out. The share had no per-user authentication path to enforce. That was the cause. The protocol floor still needed to be fixed, but it was not why the lecturer could not upload.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 03</span>
+        <span class="step-title">Apply targeted fixes in smb.conf</span>
+        <span class="step-status ok">Three corrections</span>
+      </div>
+      <div class="step-cmd"># Lower the protocol floor for legacy client compatibility
+server min protocol = lanman1
+
+# Disable the deprecated auth mode
+# security = share
+
+# Restore explicit per-user authentication on the share
+valid users = smbuser
+
+# Corrected [lessons] share block
+[lessons]
+  path = /home/smbuser/share/
+  read only = no</div>
+      <p class="step-why"><strong>Why:</strong> Three discrete edits to the same file. Lower the protocol floor so legacy clients can negotiate; remove the deprecated <code>security = share</code> from the runtime path; uncomment <code>valid users</code> so the share has an explicit authentication enforcement target. All three are required for a clean configuration — but only the second and third are required for the reported failure to resolve.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 04</span>
+        <span class="step-title">Restart the SMB service</span>
+        <span class="step-status ok">No errors</span>
+      </div>
+      <div class="step-cmd">sudo service smbd restart</div>
+      <p class="step-why"><strong>Why:</strong> Configuration changes to <code>smb.conf</code> do not take effect until <code>smbd</code> reloads. A failed restart at this point would indicate a syntax error in the edits and catch the problem before a functional test; the restart succeeded cleanly, which is the first positive signal that the configuration is valid.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 05</span>
+        <span class="step-title">Validate file access</span>
+        <span class="step-status ok">Lesson file readable</span>
+      </div>
+      <div class="step-cmd">cd /home/smbuser/share/
+ls
+cat lessons-11.txt</div>
+      <p class="step-why"><strong>Why:</strong> Functional validation. If the configuration fix actually resolved the authentication path, the share directory is reachable and the target file is readable. Contents confirmed the expected flag, closing the case. The upload permission that the lecturer originally reported would now resolve on the same authentication path.</p>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     RECOMMENDATIONS
+     ========================================================== -->
+<section class="case-section">
+  <h2>Recommendations</h2>
+
+  <div class="recs">
+
+    <div class="rec">
+      <div class="rec-title">Remove deprecated directives from runtime configs</div>
+      <div class="rec-body">Directives like <code>security = share</code> that have been removed from mainline Samba should be stripped out during any config audit, not left commented or hanging. An active deprecated directive is worse than one that's been explicitly deleted — it ambiguates the authentication model and creates exactly the layered-misconfiguration failure mode seen here.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Enforce explicit per-user authentication on every share</div>
+      <div class="rec-body">Every share block should declare <code>valid users</code> explicitly, not rely on global defaults or on placeholder values like <code>%S</code> that require a particular interplay with other directives to behave. Least-privilege authentication works only when it is stated at the share level.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Triage before patching when multiple misconfigurations are present</div>
+      <div class="rec-body">When a configuration file contains several visible issues, patching all of them at once resolves the symptom but loses the diagnostic signal. Identifying which specific misconfiguration caused the reported failure — before making the correction — builds the operational knowledge needed to prevent the same class of failure elsewhere.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Set protocol floors deliberately, not defensively</div>
+      <div class="rec-body">A protocol floor of SMB3 is appropriate for environments where every client supports modern SMB; it is not a default-on hardening measure. Setting the floor higher than the deployed client base can negotiate creates a different class of failure (session cannot be established at all) that can look similar to an authentication problem from the user's perspective. Align the floor to the actual client base.</div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     TECHNICAL NOTE
+     ========================================================== -->
+<section class="case-section">
+  <h2>Technical Note</h2>
+
+  <div class="tech-note">
+    <div class="block-label">Layered misconfiguration — why the obvious answer was wrong</div>
+    <p>Three misconfigurations were visible in <code>smb.conf</code>, but only two of them were causally linked to the reported failure. The restrictive protocol floor (<code>server min protocol = SMB3</code>) was the most conspicuous — it looks wrong at first read, and fixing it feels productive. But a protocol-floor mismatch produces a negotiation-level failure: clients cannot establish a session at all, and the failure surfaces before authentication. The reported failure was specifically at the authentication stage: lecturers could reach the share but could not upload. That pattern pointed away from protocol and toward the combination of <code>security = share</code> (deprecated, ambiguous authentication model) with <code>valid users</code> commented out of the share block (no enforcement target).</p>
+
+    <p>The operational value of distinguishing these before patching is that the next SMB incident in the same environment will be triaged on the same symptom-to-cause mapping, not by reflexively patching whichever directive looks most wrong.</p>
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     REFERENCES
+     ========================================================== -->
+<section class="case-section">
+  <h2>References</h2>
+
+  <ol class="refs">
+    <li><strong>Samba <code>smb.conf</code> man page.</strong> Authoritative reference for share-level directives, authentication modes, and protocol negotiation options. <a href="https://www.samba.org/samba/docs/current/man-html/smb.conf.5.html" target="_blank" rel="noopener">samba.org</a></li>
+
+    <li><strong>Deprecation of <code>security = share</code>.</strong> Share-level security was removed from mainline Samba; the directive persists in legacy configurations but no longer has the behavior the original design intended. Samba release notes and documentation cover the history.</li>
+
+    <li><strong>CIS Benchmark — SMB/Samba hardening.</strong> Baseline hardening guidance for SMB services in Linux environments, including protocol floors appropriate to the client population. <a href="https://www.cisecurity.org/cis-benchmarks" target="_blank" rel="noopener">cisecurity.org</a></li>
+  </ol>
+</section>
+
+
+<!-- ==========================================================
+     BOTTOM NAV
+     ========================================================== -->
+<nav class="case-nav" aria-label="Investigation navigation">
+  <a class="prev" href="pig-rules.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
+    <span>
+      <span class="label">Previous case</span>
+      Pig Rules — Network IDS Engineering
+    </span>
+  </a>
+
+  <a class="index-link" href="../investigations.html">Index</a>
+
+  <a class="next" href="mail-n-trail.html">
+    <span>
+      <span class="label">Next case</span>
+      Mail n' Trail — Credential &amp; SIEM
+    </span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+  </a>
+</nav>
+
+
+</div>
+</main>
+
+
+<footer class="container">
+  <p>&copy; 2026 Leishka Pagan</p>
+</footer>
+
+
+<script src="../assets/js/main.js" defer></script>
+</body>
+</html>

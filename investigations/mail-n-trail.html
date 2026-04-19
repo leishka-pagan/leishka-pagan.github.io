@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mail n' Trail — Investigation, Leishka Pagan</title>
+<meta name="description" content="Credential exposure and SIEM pivot investigation. Recovered administrative Splunk credentials from an exposed POP3 service using two independent methods — a PowerShell TCP client and a Telnet interactive session. Pivoted into Splunk, authored custom SPL to reduce 3,000+ events to 56 targeted IOCs, and Base64-decoded payloads captured in transit to close the attack chain.">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/styles.css">
+
+<style>
+/* ============================================================
+   Investigation detail page — shared template.
+   Same skeleton as imperial-memory.html, samba.html, oh-my-data.html.
+   Candidate for migration into the shared stylesheet later.
+   ============================================================ */
+
+/* -- case header ------------------------------------------------ */
+.case-header { padding: 3rem 0 2rem; border-bottom: 1px solid var(--border); margin-bottom: 3rem; }
+.case-meta { display: flex; flex-wrap: wrap; gap: 1.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1.25rem; }
+.case-meta span::before { content: '▸ '; color: var(--accent); }
+.case-title { font-size: clamp(1.9rem, 3.6vw, 2.6rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 1rem; }
+.case-subtitle { font-size: 1rem; color: var(--text-secondary); line-height: 1.7; max-width: 720px; }
+.back-link { display: inline-flex; align-items: center; gap: 0.4rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+.back-link:hover { color: var(--accent); }
+
+/* -- section rhythm --------------------------------------------- */
+.case-section { padding: 2.5rem 0; border-bottom: 1px solid var(--border); }
+.case-section:last-of-type { border-bottom: none; }
+.case-section h2 { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 1.5rem; }
+.case-section h3 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 0.75rem; color: var(--text); }
+.case-section p { color: var(--text-secondary); line-height: 1.8; margin-bottom: 1rem; max-width: 760px; }
+.case-section code { font-family: 'JetBrains Mono', monospace; font-size: 0.82em; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); padding: 0.1rem 0.4rem; border-radius: 3px; color: var(--text); }
+
+/* -- findings table --------------------------------------------- */
+.findings { display: flex; flex-direction: column; gap: 0.85rem; margin-top: 1.25rem; }
+.finding { display: grid; grid-template-columns: 220px 260px 1fr; gap: 1.5rem; padding: 1.1rem 1.25rem; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; }
+.finding-label { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; align-self: start; padding-top: 0.1rem; }
+.finding-detail { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text); word-break: break-word; align-self: start; padding-top: 0.1rem; }
+.finding-desc { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.7; }
+
+/* -- IOC block -------------------------------------------------- */
+.ioc-block { background: var(--surface); border: 1px solid var(--accent-border); border-radius: 6px; padding: 1.25rem 1.4rem; margin: 1.75rem 0 0.5rem; }
+.ioc-label { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 0.9rem; }
+.ioc-list { list-style: none; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.9; color: var(--text-secondary); word-break: break-all; }
+.ioc-list li strong { color: var(--text); font-weight: 600; margin-right: 0.4rem; }
+
+/* -- tools ------------------------------------------------------ */
+.tools { display: flex; flex-direction: column; gap: 0.65rem; margin-top: 0.5rem; }
+.tool { display: grid; grid-template-columns: 230px 1fr; gap: 1.5rem; padding: 0.85rem 1.1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 5px; }
+.tool-name { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text); font-weight: 500; align-self: start; }
+.tool-desc { font-size: 0.86rem; color: var(--text-secondary); line-height: 1.65; }
+
+/* -- method header (new to this page — dual-method framing) --- */
+.method-header { margin: 1.5rem 0 0.75rem; padding: 0.85rem 1.1rem; background: rgba(59, 130, 246, 0.04); border: 1px solid var(--accent-border); border-radius: 6px; }
+.method-header .method-label { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; margin-bottom: 0.3rem; }
+.method-header .method-title { font-size: 1.02rem; font-weight: 600; color: var(--text); margin-bottom: 0.35rem; }
+.method-header .method-reason { font-size: 0.86rem; color: var(--text-secondary); line-height: 1.6; margin: 0; }
+
+/* -- steps ------------------------------------------------------ */
+.steps { display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem; }
+.step { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1.25rem 1.4rem; transition: var(--t-border); }
+.step:hover { border-color: var(--border-hover); }
+.step-head { display: flex; align-items: baseline; gap: 0.85rem; margin-bottom: 0.85rem; flex-wrap: wrap; }
+.step-num { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--accent); font-weight: 600; letter-spacing: 0.08em; }
+.step-title { font-size: 0.98rem; font-weight: 600; color: var(--text); }
+.step-status { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; letter-spacing: 0.05em; padding: 0.15rem 0.55rem; border-radius: 3px; margin-left: auto; }
+.step-status.ok { color: var(--success); background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); }
+.step-status.blocked { color: var(--gate); background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); }
+.step-status.pivot { color: var(--warning); background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); }
+.step-cmd { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text); background: var(--bg); border: 1px solid var(--border); padding: 0.7rem 0.95rem; border-radius: 4px; margin: 0.6rem 0 0.85rem; overflow-x: auto; white-space: pre; line-height: 1.6; }
+.step-why { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.7; }
+.step-why strong { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-right: 0.4rem; }
+
+/* -- pivot callout --------------------------------------------- */
+.pivot-callout { background: linear-gradient(to right, rgba(245, 158, 11, 0.06), transparent 70%); border-left: 3px solid var(--warning); padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-radius: 0 6px 6px 0; }
+.pivot-callout .block-label { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--warning); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 0.5rem; }
+.pivot-callout p { color: var(--text); font-size: 0.92rem; margin: 0; line-height: 1.7; }
+
+/* -- recommendations ------------------------------------------- */
+.recs { display: flex; flex-direction: column; gap: 1.1rem; margin-top: 0.5rem; }
+.rec { padding-left: 1.4rem; border-left: 2px solid var(--accent-border); }
+.rec-title { font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 0.4rem; }
+.rec-body { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.75; }
+
+/* -- technical note -------------------------------------------- */
+.tech-note { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.75rem 1.9rem; margin-top: 1rem; }
+.tech-note .block-label { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 1rem; }
+.tech-note p { max-width: 100%; font-size: 0.92rem; }
+
+/* -- case nav -------------------------------------------------- */
+.case-nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; padding: 2.5rem 0 4rem; margin-top: 2rem; border-top: 1px solid var(--border); }
+.case-nav a { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem; padding: 0.9rem 1.1rem; border: 1px solid var(--border); border-radius: 5px; transition: var(--t-color), var(--t-border), var(--t-bg); }
+.case-nav a:hover { color: var(--accent); border-color: var(--accent-border); background: var(--accent-dim); }
+.case-nav .prev { justify-self: start; }
+.case-nav .index-link { justify-self: center; }
+.case-nav .next { justify-self: end; text-align: right; }
+.case-nav .label { color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 0.15rem; }
+
+/* -- responsive ------------------------------------------------ */
+@media (max-width: 720px) {
+  .finding { grid-template-columns: 1fr; gap: 0.5rem; }
+  .tool { grid-template-columns: 1fr; gap: 0.35rem; }
+  .case-nav { grid-template-columns: 1fr; }
+  .case-nav .prev, .case-nav .index-link, .case-nav .next { justify-self: stretch; text-align: left; }
+  .step-cmd { font-size: 0.72rem; }
+}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<nav class="nav" aria-label="Primary">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo">Leishka Pagan</a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="../investigations.html">Investigations</a>
+      <a href="../experience.html">Experience</a>
+      <a href="../proof.html">Proof</a>
+      <a href="../contact.html">Contact</a>
+    </div>
+  </div>
+</nav>
+
+
+<main id="main">
+<div class="container">
+
+
+<!-- ==========================================================
+     CASE HEADER
+     ========================================================== -->
+<header class="case-header">
+  <a class="back-link" href="../investigations.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="15 18 9 12 15 6"/></svg>
+    All investigations
+  </a>
+
+  <div class="case-meta">
+    <span>Case 05</span>
+    <span>Application &amp; Data</span>
+    <span>TDX Arena — IR Expert</span>
+    <span>08 / 15 / 2025</span>
+  </div>
+
+  <h1 class="case-title">Mail n' Trail</h1>
+  <p class="case-subtitle">Honeypot-captured suspicious download activity required pulling administrative Splunk credentials out of an exposed POP3 mail server, pivoting into the SIEM, identifying malicious URLs in the log stream, and decoding a Base64 payload to close the case. Credentials were recovered through two independent methods — a PowerShell TCP client and a Telnet interactive session — to validate the finding by methodological triangulation. Splunk SPL reduced 3,000+ raw events to 56 targeted IOCs. The final Base64 payload decoded to the challenge flag.</p>
+</header>
+
+
+<!-- ==========================================================
+     EXECUTIVE SUMMARY
+     ========================================================== -->
+<section class="case-section">
+  <h2>Executive Summary</h2>
+  <p>A honeypot named <code>Cowre</code> captured anomalous download activity at a corporate site. The investigation required retrieving Splunk access credentials from a mail server, accessing the Splunk SIEM, identifying malicious URLs in its log stream, and decoding a Base64-encoded message to reveal the final flag.</p>
+
+  <p>Two independent methods were used to retrieve the email containing the Splunk credentials: a PowerShell-scripted TCP client that interacted with the POP3 server programmatically, and a Telnet interactive session that spoke POP3 directly. Both methods recovered the same credentials from the same email (message #4), and the redundancy is the point — the finding is defensible because two different tooling paths converged on the identical result.</p>
+
+  <p>With the recovered credentials, the Splunk web interface on TCP 8000 granted access to the log stream. Custom SPL queries normalized raw log URLs into a searchable field and filtered the event set from over 3,000 raw events down to 56 targeted Pastebin indicators. One of those URLs contained a Base64 string that decoded to <em>"Congrats, you have finished CIT_FINAL successfully"</em> — the challenge flag. VirusTotal sanity-checks on the Pastebin indicators surfaced a phishing classification on one of the captured URLs.</p>
+</section>
+
+
+<!-- ==========================================================
+     FINDINGS & ANALYSIS
+     ========================================================== -->
+<section class="case-section">
+  <h2>Findings &amp; Analysis</h2>
+
+  <div class="findings">
+
+    <div class="finding">
+      <div class="finding-label">Exposed POP3 service</div>
+      <div class="finding-detail">TCP 110 on 10.0.111.157<br>+OK Dovecot (Ubuntu) ready</div>
+      <div class="finding-desc">Unencrypted POP3 reachable over the network. Permitted full plaintext retrieval of emails including credentials in transit. The critical exposure point — any client with network access could read the mailbox.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Credentials in plaintext email</div>
+      <div class="finding-detail">admin / CTF_Final!<br>(email #4 — "We launched Splunk!")</div>
+      <div class="finding-desc">Splunk administrative credentials stored in the body of a notification email. Recovered via two independent methods (Telnet interactive and PowerShell scripted) to validate the finding by methodological redundancy, not a single lucky retrieval.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Splunk web interface exposed</div>
+      <div class="finding-detail">http://10.0.111.157:8000<br>(no network restriction)</div>
+      <div class="finding-desc">Splunk Enterprise accessible without IP allowlisting or VPN gating. The recovered credentials granted immediate access to sensitive log data on a service that should have been management-network-only.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">SPL event filtering</div>
+      <div class="finding-detail">3,000+ raw events<br>→ 56 targeted IOCs</div>
+      <div class="finding-desc">Authored custom SPL with regex URL extraction and Pastebin filtering. Normalized raw log URLs into a searchable <code>url</code> field, then filtered to the Pastebin domain only. The order of magnitude reduction is the investigation's analytic product, not an accident.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Pastebin URLs in log stream</div>
+      <div class="finding-detail">/raw/0cs1NHvh<br>/raw/2QAuwmHe<br>/raw/ZTWf2ZmP<br>/raw/C4B5ZK8K</div>
+      <div class="finding-desc">Four distinct Pastebin raw URLs surfaced in the filtered log set. VirusTotal reputation checks ran across all four; <code>2QAuwmHe</code> returned a phishing classification. The full list is recorded as IOCs for downstream blocklisting.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Base64 payload decoded</div>
+      <div class="finding-detail">Q29uZ3JhdHM…VsbHk=<br>→ "Congrats, you have<br>finished CIT_FINAL<br>successfully"</div>
+      <div class="finding-desc">Contents of <code>/raw/0cs1NHvh</code> were Base64-encoded. Decoded in PowerShell to plaintext. Base64 on paste sites is a common tactic to hide payloads and flags; decoding closed the attack chain from exposure through exfiltration.</div>
+    </div>
+
+  </div>
+
+  <div class="ioc-block">
+    <div class="ioc-label">IOC quick reference</div>
+    <ul class="ioc-list">
+      <li><strong>Mail server:</strong> 10.0.111.157 — TCP 110 (POP3, plaintext)</li>
+      <li><strong>Credentials recovered:</strong> admin / CTF_Final! (email #4)</li>
+      <li><strong>Splunk host:</strong> 10.0.111.157 — TCP 8000 (no network restriction)</li>
+      <li><strong>Pastebin IOCs:</strong> /raw/0cs1NHvh, /raw/2QAuwmHe, /raw/ZTWf2ZmP, /raw/C4B5ZK8K</li>
+      <li><strong>Phishing classification (VT):</strong> /raw/2QAuwmHe</li>
+      <li><strong>Decoded flag:</strong> "Congrats, you have finished CIT_FINAL successfully"</li>
+      <li><strong>MITRE ATT&amp;CK:</strong> T1071.001 (Application Layer Protocol — Web Protocols), T1071.003 (Application Layer Protocol — Mail Protocols)</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     TOOLS & TECHNOLOGIES
+     ========================================================== -->
+<section class="case-section">
+  <h2>Tools &amp; Technologies</h2>
+
+  <div class="tools">
+
+    <div class="tool">
+      <div class="tool-name">PowerShell TCP client</div>
+      <div class="tool-desc"><code>System.Net.Sockets.TcpClient</code> used to speak POP3 programmatically when interactive Telnet was unavailable. Scripted, logged, reproducible — the approach of choice when the environment has PowerShell but not Telnet.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">Telnet (POP3)</div>
+      <div class="tool-desc">Interactive POP3 session over TCP 110 — <code>USER</code>, <code>PASS</code>, <code>LIST</code>, <code>RETR n</code>, <code>QUIT</code>. The quickest path when Telnet is installed and human-in-the-loop inspection is acceptable. Telnet was not present by default on the Windows Server image; enabled via <code>dism</code>.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">Splunk Search Processing Language</div>
+      <div class="tool-desc">Custom SPL authoring with <code>rex</code> field extraction, URL normalization, and domain filtering. The query is the analytic artifact — it's what turned an unreadable log stream into a set of four actionable indicators.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">VirusTotal</div>
+      <div class="tool-desc">Multi-engine URL reputation check on the Pastebin indicators captured from Splunk. One of four flagged as phishing — not the one that held the flag payload. Reputation data supplemented the analysis; it did not replace it.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">Base64 decode (PowerShell)</div>
+      <div class="tool-desc">Used to decode the payload retrieved from the flag-bearing Pastebin URL. Base64 on paste sites is a common tactic to hide content from casual viewers and simple keyword scans — decoding is part of the closing move.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">Web browser (Chrome)</div>
+      <div class="tool-desc">Splunk Web UI access with the recovered credentials, and direct inspection of the Pastebin raw pages that held the Base64 payload.</div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     DUAL-METHOD CALLOUT
+     ========================================================== -->
+<section class="case-section">
+  <h2>Method — Dual-Path Validation</h2>
+
+  <p>Two independent methods recovered the same credentials from the same email. Both are documented in full below. This is not redundancy for its own sake — the value of a credential recovery finding is only as strong as the confidence that the recovery is real, and two different tooling paths converging on the identical result closes the confidence gap that a single successful command leaves open.</p>
+
+  <div class="pivot-callout">
+    <div class="block-label">Why dual-method</div>
+    <p>A single successful Telnet session could be environmental luck — wrong account enabled by default, pre-authenticated session, tooling artifact. A single successful PowerShell TCP client could be a quirk of how <code>StreamReader</code> happened to handle the banner response. When both methods return the same credentials on the same message, neither explanation survives. The finding is confirmed by methodological triangulation, not by any one tool. That matters in a report a downstream reviewer will read: it turns an assertion into evidence.</p>
+  </div>
+
+
+  <!-- =======================================================
+       METHOD A — TELNET
+       ======================================================= -->
+  <div class="method-header">
+    <div class="method-label">Method A</div>
+    <div class="method-title">Telnet — interactive POP3 session</div>
+    <p class="method-reason">Quickest path when Telnet is installed. Direct, human-readable command exchange over TCP 110. Preferred when interactive inspection of the mailbox is acceptable and a scripted log is not required.</p>
+  </div>
+
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">A.01</span>
+        <span class="step-title">Verify local IP</span>
+        <span class="step-status ok">10.0.111.156</span>
+      </div>
+      <div class="step-cmd">ipconfig</div>
+      <p class="step-why"><strong>Why:</strong> The challenge spec placed the mail server at local IP + 1. Confirming the local IPv4 first is what makes the next step's target IP correct rather than guessed.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">A.02</span>
+        <span class="step-title">Ping the mail server</span>
+        <span class="step-status ok">No packet loss</span>
+      </div>
+      <div class="step-cmd">ping -n 2 10.0.111.157</div>
+      <p class="step-why"><strong>Why:</strong> Route and reachability check before any service-level work. If ping fails, the lab network is misconfigured or the target IP assumption is wrong — catching that now is cheaper than diagnosing it through a failed Telnet.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">A.03</span>
+        <span class="step-title">Enable Telnet client</span>
+        <span class="step-status ok">Installed</span>
+      </div>
+      <div class="step-cmd">dism /online /Enable-Feature /FeatureName:TelnetClient</div>
+      <p class="step-why"><strong>Why:</strong> Telnet ships with Windows Server but is disabled by default. Enabling it through <code>dism</code> avoids the longer Server Manager path and requires admin PowerShell. Documented because downstream reviewers need to know Telnet was not pre-installed.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">A.04</span>
+        <span class="step-title">Connect to POP3</span>
+        <span class="step-status ok">+OK Dovecot (Ubuntu) ready</span>
+      </div>
+      <div class="step-cmd">telnet 10.0.111.157 110</div>
+      <p class="step-why"><strong>Why:</strong> POP3 on TCP 110 is plaintext and accepts simple line-based commands. The <code>+OK Dovecot</code> banner confirms the service is running and identifies the server software — useful context if something downstream behaves unexpectedly.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">A.05</span>
+        <span class="step-title">Authenticate and list messages</span>
+        <span class="step-status ok">4 messages</span>
+      </div>
+      <div class="step-cmd">USER johnd
+PASS toor
+LIST</div>
+      <p class="step-why"><strong>Why:</strong> Standard POP3 authentication followed by <code>LIST</code> to enumerate mailbox contents. Four messages returned, sized 1117 / 1361 / 1210 / 869 bytes.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">A.06</span>
+        <span class="step-title">Retrieve and inspect each email</span>
+        <span class="step-status ok">Email #4 holds credentials</span>
+      </div>
+      <div class="step-cmd">RETR 1
+RETR 2
+RETR 3
+RETR 4</div>
+      <p class="step-why"><strong>Why:</strong> Fetch each message in sequence and inspect content for credential-like material. Emails #1–#3 were operational notifications (maintenance, monitoring, software update). Email #4 — subject "We launched Splunk!" — contained <code>username: admin</code> and <code>password: CTF_Final!</code> in plaintext, along with the Splunk URL <code>http://[SERVER-IP]:8000/</code>.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">A.07</span>
+        <span class="step-title">Access Splunk with recovered credentials</span>
+        <span class="step-status ok">Dashboard reached</span>
+      </div>
+      <div class="step-cmd">Browser → http://10.0.111.157:8000
+Login: admin / CTF_Final!</div>
+      <p class="step-why"><strong>Why:</strong> Direct validation of the recovered credentials against the target service. Successful login confirms the email contents were not stale — these are live administrative credentials on an exposed Splunk instance.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">A.08</span>
+        <span class="step-title">Author SPL to filter 3,000+ events to Pastebin URLs</span>
+        <span class="step-status ok">56 events</span>
+      </div>
+      <div class="step-cmd">index=* ("http://" OR "https://")
+| rex field=_raw "(?i)(?&lt;url&gt;https?://[^\s\"']+)"
+| search url="*pastebin.com*"
+| table _time url
+| sort -_time</div>
+      <p class="step-why"><strong>Why:</strong> <code>index=*</code> with a URL-substring filter catches any event that <em>mentions</em> a URL or download command. <code>rex</code> extracts those URLs into a named <code>url</code> field so they can be ranked and filtered. Narrowing to <code>*pastebin.com*</code> drops the noise — the reduction from 3,000+ raw events to 56 Pastebin-specific events is the analytic product of the search, and the path that got there is visible in the query itself.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">A.09</span>
+        <span class="step-title">Reputation sanity-check via VirusTotal</span>
+        <span class="step-status ok">One phishing classification</span>
+      </div>
+      <div class="step-cmd"># Each URL submitted to VirusTotal:
+https://pastebin.com/raw/0cs1NHvh
+https://pastebin.com/raw/2QAuwmHe     ← phishing (VT)
+https://pastebin.com/raw/ZTWf2ZmP
+https://pastebin.com/raw/C4B5ZK8K</div>
+      <p class="step-why"><strong>Why:</strong> Independent reputation signal on every captured URL. VirusTotal flagged <code>2QAuwmHe</code> as phishing; the remaining three were not flagged by any engine. The phishing classification was not on the flag-bearing URL, which underlines the point — reputation data complements analysis, it does not replace it.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">A.10</span>
+        <span class="step-title">Decode the Base64 payload</span>
+        <span class="step-status ok">Flag recovered</span>
+      </div>
+      <div class="step-cmd"># Retrieved from https://pastebin.com/raw/0cs1NHvh:
+Q29uZ3JhdHMsIHlvdSBoYXZlIGZpbmlzaGVkIENJVF9GSU5BTCBzdWNjZXNzZnVsbHk=
+
+# Decoded:
+"Congrats, you have finished CIT_FINAL successfully"</div>
+      <p class="step-why"><strong>Why:</strong> Base64 on paste sites is a standard payload-hiding technique. Decoding is the closing move on the attack chain — from exposure (open POP3) through credential recovery, SIEM pivot, IOC isolation, and finally the hidden content itself.</p>
+    </div>
+
+  </div>
+
+
+  <!-- =======================================================
+       METHOD B — POWERSHELL TCP CLIENT
+       ======================================================= -->
+  <div class="method-header">
+    <div class="method-label">Method B</div>
+    <div class="method-title">PowerShell — scripted POP3 via TcpClient</div>
+    <p class="method-reason">Used when Telnet is not installed or when a scripted, logged, reproducible trace is required. Interacts with the POP3 service at the socket level through <code>System.Net.Sockets.TcpClient</code>.</p>
+  </div>
+
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">B.01</span>
+        <span class="step-title">Confirm local IP</span>
+        <span class="step-status ok">10.0.90.252</span>
+      </div>
+      <div class="step-cmd">ipconfig</div>
+      <p class="step-why"><strong>Why:</strong> Same rationale as Method A — the target IP is derived from the local IP. Different lab session, different IPs; same protocol.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">B.02</span>
+        <span class="step-title">Ping mail server</span>
+        <span class="step-status ok">Reachable</span>
+      </div>
+      <div class="step-cmd">ping -n 2 10.0.90.253</div>
+      <p class="step-why"><strong>Why:</strong> Reachability check before service-level work.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">B.03</span>
+        <span class="step-title">Enumerate open mail ports</span>
+        <span class="step-status ok">110 open</span>
+      </div>
+      <div class="step-cmd">$ports = 22,110,143,993,995,25,587
+foreach ($p in $ports) {
+    Test-NetConnection 10.0.90.253 -Port $p |
+        Select-Object ComputerName,RemotePort,TcpTestSucceeded
+}</div>
+      <p class="step-why"><strong>Why:</strong> Enumerate the common mail and shell ports in one loop to establish the attack surface before committing to an approach. POP3 (110) confirmed open; SMTP (25) and POP3S (995) also responded; IMAP (143, 993) closed. Choice of POP3 over IMAP is dictated by what's actually open.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">B.04</span>
+        <span class="step-title">Open POP3 session over TcpClient</span>
+        <span class="step-status ok">Banner received</span>
+      </div>
+      <div class="step-cmd">$tcp    = New-Object System.Net.Sockets.TcpClient("10.0.90.253",110)
+$stream = $tcp.GetStream()
+$writer = New-Object System.IO.StreamWriter($stream)
+$reader = New-Object System.IO.StreamReader($stream)
+$reader.ReadLine()                                   # +OK Dovecot (Ubuntu) ready
+$writer.WriteLine("USER johnd"); $writer.Flush(); $reader.ReadLine()
+$writer.WriteLine("PASS toor");  $writer.Flush(); $reader.ReadLine()
+$writer.WriteLine("LIST");       $writer.Flush(); $reader.ReadToEnd()</div>
+      <p class="step-why"><strong>Why:</strong> <code>TcpClient</code> speaks raw TCP, which is all POP3 is. <code>StreamWriter.Flush()</code> on every line matters — without it, PowerShell's buffering silently holds commands and the server receives nothing. <code>ReadLine()</code> after each write synchronizes on the server response. Explicit, scripted, and reproducible — the exact opposite of Telnet's interactive convenience.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">B.05</span>
+        <span class="step-title">Retrieve message #4 — recover credentials</span>
+        <span class="step-status ok">admin / CTF_Final!</span>
+      </div>
+      <div class="step-cmd">$writer.WriteLine("RETR 4"); $writer.Flush()
+while (($l = $reader.ReadLine()) -ne ".") { $l | Out-Host }</div>
+      <p class="step-why"><strong>Why:</strong> POP3 terminates a multi-line response with a bare period on its own line. Reading until <code>.</code> is the correct termination — reading a fixed byte count would truncate, and reading to end-of-stream would hang waiting for the server to close the socket. Same credentials surfaced as Method A: <code>admin</code> / <code>CTF_Final!</code>. The dual-path validation is complete.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">B.06</span>
+        <span class="step-title">Scan subnet for Splunk</span>
+        <span class="step-status ok">10.0.90.253:8000</span>
+      </div>
+      <div class="step-cmd">241..254 | ForEach-Object {
+    $ip = "10.0.90.$_"
+    if ((Test-NetConnection $ip -Port 8000 -WarningAction SilentlyContinue).TcpTestSucceeded) {
+        Write-Host "Splunk found at $ip"
+    }
+}</div>
+      <p class="step-why"><strong>Why:</strong> In this lab session, the Splunk host's exact IP wasn't stated up front — only that it was in the subnet. Port-8000 sweep across the relevant range locates it without requiring DNS or broadcast reconnaissance. <code>-WarningAction SilentlyContinue</code> suppresses the noise from each failed connection attempt.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">B.07</span>
+        <span class="step-title">Authenticate, author SPL, close the chain</span>
+        <span class="step-status ok">Flag recovered</span>
+      </div>
+      <div class="step-cmd"># Login: admin / CTF_Final! at http://10.0.90.253:8000
+# SPL (same pattern as Method A):
+index=* ("http://" OR "https://")
+| rex field=_raw "(?i)(?&lt;url&gt;https?://[^\s\"']+)"
+| stats count by url
+| sort -count</div>
+      <p class="step-why"><strong>Why:</strong> The SPL pattern is stable across both methods. Minor variation — <code>stats count by url</code> instead of <code>table</code> — gives a ranked indicator list rather than a time-ordered stream, useful when prioritizing for blocklisting. Decoded the same Base64 payload from <code>/raw/0cs1NHvh</code> to recover the identical flag. Chain closed independently of Method A.</p>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     RECOMMENDATIONS
+     ========================================================== -->
+<section class="case-section">
+  <h2>Recommendations</h2>
+
+  <div class="recs">
+
+    <div class="rec">
+      <div class="rec-title">Close unencrypted mail services at the network edge</div>
+      <div class="rec-body">POP3 on TCP 110 transmits credentials and message bodies in plaintext. Where POP3 is required, it should be tunneled through TLS (POP3S on 995) or restricted to management networks via firewall rule. The specific exposure in this case — administrative credentials readable by any host with network access — is entirely eliminated by either control.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Never transmit credentials in email bodies</div>
+      <div class="rec-body">Credentials delivered by email persist in the mailbox, in backups, in mail-archive systems, and in every client that has synced the account. Rotate any credentials that may have been delivered this way, and replace the operational pattern with an out-of-band channel (password manager share, one-time credential delivery, identity-provider-initiated onboarding).</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Network-restrict SIEM and management interfaces</div>
+      <div class="rec-body">Splunk Web on TCP 8000 reached from any host on the network is the second half of the failure chain in this case. SIEM web interfaces belong on management networks, behind VPN, or behind an identity-aware proxy. MFA on the Splunk admin account is a necessary complement, not a substitute.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Operationalize Base64 and encoding detection in SPL</div>
+      <div class="rec-body">The Base64 payload in this case was the final concealment step. SPL queries that flag high-entropy strings, Base64-shaped patterns, or common encoding markers in log fields turn that concealment into a detection. Automate the pattern, alert on it, and correlate with outbound traffic to paste-site domains.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Use multiple methods when the finding must be defensible</div>
+      <div class="rec-body">For findings that will be cited in a report or inform downstream action, recovering the same result through two independent tooling paths is not extra work — it is the difference between assertion and evidence. The dual-method approach used here (Telnet + PowerShell TCP client) is a pattern that generalizes to any recovery operation where confidence in the result matters.</div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     TECHNICAL NOTE
+     ========================================================== -->
+<section class="case-section">
+  <h2>Technical Note</h2>
+
+  <div class="tech-note">
+    <div class="block-label">SPL as the analytic artifact</div>
+    <p>The investigation's central analytic move is the reduction from 3,000+ raw events to 56 Pastebin-specific events. That reduction is the SPL query itself. It's not a filter applied to a display — it is the data transformation that produced the finding. Two components do the work: a <code>rex</code> extraction that lifts URLs out of unstructured <code>_raw</code> into a named field, and a wildcard <code>search</code> that narrows by domain. Neither is sophisticated individually. Together they are the difference between an unreadable log stream and a list of four IOCs ready for downstream action.</p>
+
+    <p>The query generalizes. Any investigation involving URLs embedded in log text can apply the same pattern: regex-extract into a named field, filter by the domain class of interest, surface what's left. Downstream investigators reading the SPL should be able to retarget it to a different domain or indicator class with a single-line change. That portability is part of what SPL authoring — as distinct from SPL running — actually produces.</p>
+
+    <p>Methodological redundancy with Telnet and PowerShell served a different purpose: defending the credential recovery against the possibility of tooling artifact. Both are characteristic of the case type. One investigation asked "what are the indicators?" and answered through SPL. A parallel part of the same investigation asked "are these really the credentials?" and answered through independent re-derivation. Both questions got explicit, documented answers.</p>
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     REFERENCES
+     ========================================================== -->
+<section class="case-section">
+  <h2>References</h2>
+
+  <ol class="refs">
+    <li><strong>MITRE ATT&amp;CK — Application Layer Protocol.</strong> T1071.001 (Web Protocols) and T1071.003 (Mail Protocols) map to the Pastebin command-and-control pattern and the POP3 credential exfiltration surface observed in this case. <a href="https://attack.mitre.org/techniques/T1071/" target="_blank" rel="noopener">attack.mitre.org/techniques/T1071</a></li>
+
+    <li><strong>Splunk Search Reference.</strong> Official SPL documentation for <code>rex</code>, <code>search</code>, and <code>stats</code> — the core commands used to author the filter that produced the IOC list. <a href="https://docs.splunk.com/Documentation/Splunk/latest/SearchReference" target="_blank" rel="noopener">docs.splunk.com</a></li>
+
+    <li><strong>VirusTotal.</strong> Multi-engine URL reputation source used to supplement the Splunk-derived IOCs. <a href="https://www.virustotal.com" target="_blank" rel="noopener">virustotal.com</a></li>
+
+    <li><strong>Microsoft — POP3 Protocol reference.</strong> Canonical reference for POP3 commands (<code>USER</code>, <code>PASS</code>, <code>LIST</code>, <code>RETR</code>, <code>QUIT</code>) and response framing, including the multi-line dot-terminator used in <code>RETR</code> responses. <a href="https://learn.microsoft.com/en-us/previous-versions/office/developer/exchange-server-2010/aa494566(v=exchg.140)" target="_blank" rel="noopener">learn.microsoft.com</a></li>
+  </ol>
+</section>
+
+
+<!-- ==========================================================
+     BOTTOM NAV
+     ========================================================== -->
+<nav class="case-nav" aria-label="Investigation navigation">
+  <a class="prev" href="samba.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
+    <span>
+      <span class="label">Previous case</span>
+      Samba — SMB Service Recovery
+    </span>
+  </a>
+
+  <a class="index-link" href="../investigations.html">Index</a>
+
+  <a class="next" href="oh-my-data.html">
+    <span>
+      <span class="label">Next case</span>
+      Oh My Data — Credential Leak Analysis
+    </span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+  </a>
+</nav>
+
+
+</div>
+</main>
+
+
+<footer class="container">
+  <p>&copy; 2026 Leishka Pagan</p>
+</footer>
+
+
+<script src="../assets/js/main.js" defer></script>
+</body>
+</html>

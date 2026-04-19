@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pig Rules — Investigation, Leishka Pagan</title>
+<meta name="description" content="Network intrusion detection engineering. Isolated malicious RDP traffic from baseline behavior using a non-obvious TCP header signature — a fixed Window Size of 1024 bytes — and authored a custom Snort rule with low false positive rate, validated in Snorby.">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/styles.css">
+
+<style>
+/* ============================================================
+   Investigation detail page — shared template.
+   Same skeleton as imperial-memory / samba / oh-my-data / mail-n-trail.
+   Candidate for migration into the shared stylesheet later.
+   ============================================================ */
+
+/* -- case header ------------------------------------------------ */
+.case-header { padding: 3rem 0 2rem; border-bottom: 1px solid var(--border); margin-bottom: 3rem; }
+.case-meta { display: flex; flex-wrap: wrap; gap: 1.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1.25rem; }
+.case-meta span::before { content: '▸ '; color: var(--accent); }
+.case-title { font-size: clamp(1.9rem, 3.6vw, 2.6rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 1rem; }
+.case-subtitle { font-size: 1rem; color: var(--text-secondary); line-height: 1.7; max-width: 720px; }
+.back-link { display: inline-flex; align-items: center; gap: 0.4rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+.back-link:hover { color: var(--accent); }
+
+/* -- section rhythm --------------------------------------------- */
+.case-section { padding: 2.5rem 0; border-bottom: 1px solid var(--border); }
+.case-section:last-of-type { border-bottom: none; }
+.case-section h2 { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 1.5rem; }
+.case-section h3 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 0.75rem; color: var(--text); }
+.case-section p { color: var(--text-secondary); line-height: 1.8; margin-bottom: 1rem; max-width: 760px; }
+.case-section code { font-family: 'JetBrains Mono', monospace; font-size: 0.82em; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); padding: 0.1rem 0.4rem; border-radius: 3px; color: var(--text); }
+
+/* -- findings table --------------------------------------------- */
+.findings { display: flex; flex-direction: column; gap: 0.85rem; margin-top: 1.25rem; }
+.finding { display: grid; grid-template-columns: 220px 260px 1fr; gap: 1.5rem; padding: 1.1rem 1.25rem; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; }
+.finding-label { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; align-self: start; padding-top: 0.1rem; }
+.finding-detail { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text); word-break: break-word; align-self: start; padding-top: 0.1rem; }
+.finding-desc { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.7; }
+
+/* -- IOC block -------------------------------------------------- */
+.ioc-block { background: var(--surface); border: 1px solid var(--accent-border); border-radius: 6px; padding: 1.25rem 1.4rem; margin: 1.75rem 0 0.5rem; }
+.ioc-label { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 0.9rem; }
+.ioc-list { list-style: none; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.9; color: var(--text-secondary); word-break: break-all; }
+.ioc-list li strong { color: var(--text); font-weight: 600; margin-right: 0.4rem; }
+
+/* -- tools ------------------------------------------------------ */
+.tools { display: flex; flex-direction: column; gap: 0.65rem; margin-top: 0.5rem; }
+.tool { display: grid; grid-template-columns: 230px 1fr; gap: 1.5rem; padding: 0.85rem 1.1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 5px; }
+.tool-name { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text); font-weight: 500; align-self: start; }
+.tool-desc { font-size: 0.86rem; color: var(--text-secondary); line-height: 1.65; }
+
+/* -- steps ------------------------------------------------------ */
+.steps { display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem; }
+.step { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1.25rem 1.4rem; transition: var(--t-border); }
+.step:hover { border-color: var(--border-hover); }
+.step-head { display: flex; align-items: baseline; gap: 0.85rem; margin-bottom: 0.85rem; flex-wrap: wrap; }
+.step-num { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--accent); font-weight: 600; letter-spacing: 0.08em; }
+.step-title { font-size: 0.98rem; font-weight: 600; color: var(--text); }
+.step-status { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; letter-spacing: 0.05em; padding: 0.15rem 0.55rem; border-radius: 3px; margin-left: auto; }
+.step-status.ok { color: var(--success); background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); }
+.step-status.blocked { color: var(--gate); background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); }
+.step-status.pivot { color: var(--warning); background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); }
+.step-cmd { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text); background: var(--bg); border: 1px solid var(--border); padding: 0.7rem 0.95rem; border-radius: 4px; margin: 0.6rem 0 0.85rem; overflow-x: auto; white-space: pre; line-height: 1.6; }
+.step-why { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.7; }
+.step-why strong { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-right: 0.4rem; }
+
+/* -- pivot callout --------------------------------------------- */
+.pivot-callout { background: linear-gradient(to right, rgba(245, 158, 11, 0.06), transparent 70%); border-left: 3px solid var(--warning); padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-radius: 0 6px 6px 0; }
+.pivot-callout .block-label { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--warning); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 0.5rem; }
+.pivot-callout p { color: var(--text); font-size: 0.92rem; margin: 0; line-height: 1.7; }
+
+/* -- recommendations ------------------------------------------- */
+.recs { display: flex; flex-direction: column; gap: 1.1rem; margin-top: 0.5rem; }
+.rec { padding-left: 1.4rem; border-left: 2px solid var(--accent-border); }
+.rec-title { font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 0.4rem; }
+.rec-body { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.75; }
+
+/* -- technical note -------------------------------------------- */
+.tech-note { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.75rem 1.9rem; margin-top: 1rem; }
+.tech-note .block-label { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 1rem; }
+.tech-note p { max-width: 100%; font-size: 0.92rem; }
+
+/* -- case nav -------------------------------------------------- */
+.case-nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; padding: 2.5rem 0 4rem; margin-top: 2rem; border-top: 1px solid var(--border); }
+.case-nav a { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem; padding: 0.9rem 1.1rem; border: 1px solid var(--border); border-radius: 5px; transition: var(--t-color), var(--t-border), var(--t-bg); }
+.case-nav a:hover { color: var(--accent); border-color: var(--accent-border); background: var(--accent-dim); }
+.case-nav .prev { justify-self: start; }
+.case-nav .index-link { justify-self: center; }
+.case-nav .next { justify-self: end; text-align: right; }
+.case-nav .label { color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 0.15rem; }
+
+/* -- responsive ------------------------------------------------ */
+@media (max-width: 720px) {
+  .finding { grid-template-columns: 1fr; gap: 0.5rem; }
+  .tool { grid-template-columns: 1fr; gap: 0.35rem; }
+  .case-nav { grid-template-columns: 1fr; }
+  .case-nav .prev, .case-nav .index-link, .case-nav .next { justify-self: stretch; text-align: left; }
+  .step-cmd { font-size: 0.72rem; }
+}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<nav class="nav" aria-label="Primary">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo">Leishka Pagan</a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="../investigations.html">Investigations</a>
+      <a href="../experience.html">Experience</a>
+      <a href="../proof.html">Proof</a>
+      <a href="../contact.html">Contact</a>
+    </div>
+  </div>
+</nav>
+
+
+<main id="main">
+<div class="container">
+
+
+<!-- ==========================================================
+     CASE HEADER
+     ========================================================== -->
+<header class="case-header">
+  <a class="back-link" href="../investigations.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="15 18 9 12 15 6"/></svg>
+    All investigations
+  </a>
+
+  <div class="case-meta">
+    <span>Case 03</span>
+    <span>Network &amp; Detection</span>
+    <span>TDX Arena — IR Expert</span>
+    <span>08 / 13 / 2025</span>
+  </div>
+
+  <h1 class="case-title">Pig Rules</h1>
+  <p class="case-subtitle">As a SOC analyst at the Flying Piglet post office, the task was to detect a planned hacktivist campaign without flooding on benign RDP traffic. Port-based filtering was too coarse. The real discriminator was sitting in the TCP header — a static Window Size of 1024 bytes across every malicious SYN. That non-default value became the basis of a targeted Snort signature, authored, tested, and validated in Snorby with a low false positive rate.</p>
+</header>
+
+
+<!-- ==========================================================
+     EXECUTIVE SUMMARY
+     ========================================================== -->
+<section class="case-section">
+  <h2>Executive Summary</h2>
+  <p>Inbound RDP traffic on TCP 3389 contained both legitimate administrative connections and hacktivist probing. Detecting the malicious subset required a discriminator more specific than port number alone. Broad packet capture surfaced a recurring TCP header anomaly: every malicious packet carried a static Window Size of exactly 1024 bytes. Normal TCP sessions negotiate and adjust this value dynamically; a fixed value is a strong signal of crafted traffic — brute-force tools, malware, or command-and-control clients often set Window Size as a hard-coded constant rather than letting the OS calculate it.</p>
+
+  <p>A custom Snort rule was authored against that specific header field (<code>window:1024</code>), configuration-tested with <code>snort -T</code>, deployed, and validated in the Snorby web UI. Alerts fired only for traffic matching the anomaly; the legitimate RDP baseline did not trigger. False positive rate stayed low throughout validation.</p>
+</section>
+
+
+<!-- ==========================================================
+     FINDINGS & ANALYSIS
+     ========================================================== -->
+<section class="case-section">
+  <h2>Findings &amp; Analysis</h2>
+
+  <div class="findings">
+
+    <div class="finding">
+      <div class="finding-label">Target port</div>
+      <div class="finding-detail">TCP 3389 (RDP)</div>
+      <div class="finding-desc">Detected consistent inbound RDP traffic. RDP is legitimate administrative protocol; the presence of unsolicited inbound traffic on 3389 pointed at probing, but port alone was not specific enough to isolate malicious from benign.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Packet-level signature</div>
+      <div class="finding-detail">TCP Window Size = 1024</div>
+      <div class="finding-desc">Recurring, abnormal TCP header field on the malicious stream. Normal sessions adjust Window Size dynamically based on receive buffer and congestion — a fixed value indicates crafted packets, not a negotiated TCP session. This became the discriminator.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Source IP</div>
+      <div class="finding-detail">172.29.0.1</div>
+      <div class="finding-desc">Attacker source consistently matched every packet carrying the anomalous Window Size. Linking the header anomaly to a single source confirmed the pattern as a targeted attack rather than random background noise — one tool, one host, one signature.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Detection technique</div>
+      <div class="finding-detail">Signature-based NIDS<br>(Snort, window:1024)</div>
+      <div class="finding-desc">Custom Snort rule matching TCP traffic with Window Size 1024. Targets the packet-level anomaly directly rather than filtering by port, source, or destination — which means the rule continues to fire even if the attacker rotates source IP or moves off port 3389, as long as they keep crafting packets with the same Window value.</div>
+    </div>
+
+  </div>
+
+  <div class="ioc-block">
+    <div class="ioc-label">IOC quick reference</div>
+    <ul class="ioc-list">
+      <li><strong>Port:</strong> TCP 3389 (RDP)</li>
+      <li><strong>Header signature:</strong> TCP Window Size = 1024</li>
+      <li><strong>Source IP:</strong> 172.29.0.1</li>
+      <li><strong>Snort SID:</strong> 1000002</li>
+      <li><strong>Rules file:</strong> /etc/snort/rules/local.rules</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     TOOLS & TECHNOLOGIES
+     ========================================================== -->
+<section class="case-section">
+  <h2>Tools &amp; Technologies</h2>
+
+  <div class="tools">
+
+    <div class="tool">
+      <div class="tool-name">tcpdump</div>
+      <div class="tool-desc">Live packet capture on <code>eth0</code>. Used both as a broad listener to surface the anomaly and as a filtered listener to confirm the signature before committing to a Snort rule. BPF filter on <code>tcp[14:2] = 1024</code> reads the 16-bit Window field at byte offset 14 of the TCP header — faster than post-capture analysis and confirms the pattern at wire level.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">Snort IDS</div>
+      <div class="tool-desc">Rule engine for signature-based detection. The <code>window:</code> option is the specific keyword that matches against the TCP Window Size field — most Snort rules target payloads, so targeting a header field is the less-obvious design choice that made this rule specific.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">Snorby</div>
+      <div class="tool-desc">Web UI for Snort alert review. Used to validate the custom rule was firing on the right traffic only — not just that it was firing. The Sensors tab provided event counts and matching packet details for defensibility in reporting.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">nano</div>
+      <div class="tool-desc">Direct edit of <code>/etc/snort/rules/local.rules</code> to add the custom rule. No IDE overhead; Snort reads the file on startup and a reload picks up changes.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">Linux shell utilities</div>
+      <div class="tool-desc">Service control, rule deployment, traffic inspection, and configuration testing. <code>snort -T -c</code> validates configuration syntax before activation — cheaper to catch a malformed rule at test time than after deployment.</div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     INVESTIGATION PROCESS
+     ========================================================== -->
+<section class="case-section">
+  <h2>Investigation Process</h2>
+
+  <p>Five steps. The defining move is step 2 — not authoring the rule, but recognizing the anomaly that makes the rule possible. Detection engineering rewards the analyst who sees the signature before the tool is told to look for it.</p>
+
+
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 01</span>
+        <span class="step-title">Establish environment &amp; read on-box guidance</span>
+        <span class="step-status ok">Snort VM confirmed</span>
+      </div>
+      <div class="step-cmd">whoami
+pwd
+ls
+cat README
+hostname -I</div>
+      <p class="step-why"><strong>Why:</strong> Confirm identity, working directory, and the challenge's own on-box documentation. The <code>README</code> specified where custom rules go (<code>/etc/snort/rules/local.rules</code>) and how to invoke Snort in test mode. Reading it up front is faster than reverse-engineering the expected paths.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 02</span>
+        <span class="step-title">Capture and filter live traffic</span>
+        <span class="step-status pivot">Window Size 1024</span>
+      </div>
+      <div class="step-cmd"># Broad capture — surface the anomaly
+sudo tcpdump -i eth0 tcp
+
+# BPF filter — confirm the signature at wire level
+sudo tcpdump -i eth0 tcp and 'tcp[14:2] = 1024'</div>
+      <p class="step-why"><strong>Why:</strong> Broad capture first to see what traffic actually looks like — hypotheses about malicious behavior survive or die against the real packet stream. Observed recurring SYN packets from <code>172.29.0.1</code> with a static TCP Window Size of 1024. The BPF filter confirmed it at wire level: reading the 16-bit Window field at offset 14 of the TCP header isolated the malicious stream cleanly. That this value is fixed across every malicious packet — rather than adjusted per-session — is the anomaly.</p>
+    </div>
+
+
+    <div class="pivot-callout">
+      <div class="block-label">Why a static Window Size is an anomaly</div>
+      <p>TCP Window Size controls how much unacknowledged data a receiver will accept. Real sessions negotiate it during the handshake and adjust it dynamically based on the receiver's buffer state and the network's congestion signals — values drift as the session progresses. A <em>fixed</em> value across every SYN from the same source, every time, is a strong signal that packets are being crafted by a tool rather than originating from a real TCP stack. Brute-forcers, scanners, and C2 clients commonly hard-code Window Size to avoid the cost of a full stack implementation. 1024 specifically is a common choice because it's a round power of two and small enough to keep crafted packets compact. Using it as a signature works precisely because legitimate RDP clients almost never emit it.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 03</span>
+        <span class="step-title">Author the Snort rule</span>
+        <span class="step-status ok">SID 1000002 added</span>
+      </div>
+      <div class="step-cmd">nano /etc/snort/rules/local.rules
+
+# Added:
+alert tcp any any -&gt; any any (msg:"TCP Window = 1024 (may not fire)"; \
+    sid:1000002; rev:1; window:1024;)</div>
+      <p class="step-why"><strong>Why:</strong> Rule targets the <code>window:</code> keyword directly — the TCP Window Size field, not a payload pattern. <code>any any -&gt; any any</code> is intentional: port and IP are not part of the signature, the crafted-packet anomaly is. That means the rule continues to fire even if the attacker rotates source IP or moves off port 3389, as long as the crafted Window Size persists. <code>sid:1000002</code> is in the local SID range reserved for custom rules, avoiding collision with shipped signatures.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 04</span>
+        <span class="step-title">Configuration test and run</span>
+        <span class="step-status ok">Validated</span>
+      </div>
+      <div class="step-cmd"># Syntax check before deploying
+sudo snort -T -c /etc/snort/snort.conf
+
+# Run quietly and capture alerts
+sudo snort -c /etc/snort/snort.conf -q</div>
+      <p class="step-why"><strong>Why:</strong> <code>-T</code> validates every loaded configuration file and rule syntactically without processing live traffic — catching a malformed rule here costs a second; catching it after a live deploy costs whatever alerts it missed in the meantime. <code>-q</code> suppresses per-packet noise so the alert stream is readable in a terminal session.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 05</span>
+        <span class="step-title">Validate in Snorby</span>
+        <span class="step-status ok">Flag recovered</span>
+      </div>
+      <div class="step-cmd"># Snorby → Sensors tab
+# Confirmed: alerts only on malicious RDP traffic matching the signature
+# Benign RDP baseline did not trigger
+# FLAG retrieved from alert detail</div>
+      <p class="step-why"><strong>Why:</strong> A rule that fires is not the same as a rule that fires correctly. Snorby's alert detail provides timestamps, matching packet data, and aggregate event counts — enough to confirm the rule is scoped to the malicious stream and that benign RDP is not being picked up. Low false positive rate confirmed. The challenge flag was retrieved from the alert metadata itself.</p>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     RECOMMENDATIONS
+     ========================================================== -->
+<section class="case-section">
+  <h2>Recommendations</h2>
+
+  <div class="recs">
+
+    <div class="rec">
+      <div class="rec-title">Deploy the validated rule to production</div>
+      <div class="rec-body">The <code>window:1024</code> signature fired cleanly against the malicious stream without false positives on the benign baseline. Rules that pass that bar in lab validation should graduate to production IDS with the same SID, so detection history remains continuous across environments.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Monitor RDP end-to-end, not just at a single layer</div>
+      <div class="rec-body">A header-level signature catches crafted traffic. It does not catch legitimate-looking authenticated RDP abuse. Pair the rule with authentication log monitoring (failed login spikes, unusual source IP geography) and firewall-level rate limiting on 3389 — defense in depth is what makes a detection rule durable.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Correlate Snort alerts into the SIEM</div>
+      <div class="rec-body">Individual alerts are useful; correlated alerts answer questions. Forward Snort events into Splunk or the equivalent SIEM so the <code>window:1024</code> hits cross-reference with Windows authentication logs, firewall deny logs, and endpoint telemetry from the same source IP. That cross-view turns "someone crafted bad RDP packets" into "someone crafted bad RDP packets and then authenticated successfully from a different IP."</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Review detection rules periodically against attack evolution</div>
+      <div class="rec-body">A fixed Window Size of 1024 works now because attacker tooling uses it. When tool authors randomize Window Size or adopt TCP stack fingerprint normalization to evade exactly this kind of detection, the rule stops working and needs replacement. Scheduled rule reviews are not administrative overhead; they are maintenance of a living detection.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Segment RDP to trusted management networks</div>
+      <div class="rec-body">No detection rule replaces not exposing RDP to the public internet. Restrict 3389 to management networks, require VPN or an identity-aware proxy, and enforce MFA on any account that can log in via RDP. The rule handles what gets past those controls; the controls prevent the rule from ever needing to fire.</div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     TECHNICAL NOTE
+     ========================================================== -->
+<section class="case-section">
+  <h2>Technical Note</h2>
+
+  <div class="tech-note">
+    <div class="block-label">Header-field detection vs. payload detection</div>
+    <p>Most Snort rules target payloads — substring matches, regex against the application data, content within a packet's body. That's where novel attack signatures typically live, and it's where the engine's strengths show. But payload detection assumes a payload worth inspecting, and plenty of attack traffic never gets that far: scan packets, crafted SYNs, probes designed to find a service and disappear. For those, header-field detection is the right primitive. Snort exposes it through keywords like <code>window:</code>, <code>flags:</code>, and <code>ttl:</code> — matching against fields the attacker's tool controls directly, rather than fields negotiated by a real TCP stack.</p>
+
+    <p>The trade-off is specificity. Header-field rules are fast and cheap at runtime, but they're also easy to evade once an attacker knows the rule exists. A fixed Window Size of 1024 is a signature because it's anomalous; the moment attacker tooling randomizes Window Size, the rule becomes blind. That's why header-field detection works best as one layer in a stack — precise, low-overhead, and explicit about its own expiration date. The operational value isn't that it's permanent. It's that it turns a live investigation into a deployable artifact while the attacker is still using the version of the tool you observed.</p>
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     REFERENCES
+     ========================================================== -->
+<section class="case-section">
+  <h2>References</h2>
+
+  <ol class="refs">
+    <li><strong>MITRE ATT&amp;CK — Remote Desktop Protocol.</strong> T1021.001 (Remote Services: RDP) is the lateral-movement technique this rule's target traffic maps to. <a href="https://attack.mitre.org/techniques/T1021/001/" target="_blank" rel="noopener">attack.mitre.org/techniques/T1021/001</a></li>
+
+    <li><strong>CISA Advisory AA23-136A — #StopRansomware: BianLian.</strong> FBI and CISA joint advisory on the BianLian group explicitly warns organizations to "strictly limit the use of RDP and other remote desktop services" — context for why RDP detection engineering continues to be operationally relevant. <a href="https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-136a" target="_blank" rel="noopener">cisa.gov/aa23-136a</a></li>
+
+    <li><strong>Snort 2 Users Manual — Rule Options.</strong> Reference for the <code>window:</code> keyword and other TCP header-level options used to build non-payload detection rules. <a href="https://www.snort.org/documents" target="_blank" rel="noopener">snort.org/documents</a></li>
+
+    <li><strong>Note on the specific signature.</strong> No publicly documented real-world campaign uses a fixed TCP Window Size of exactly 1024 in RDP traffic. The signature observed in this exercise is likely constructed for the lab rather than reflecting an in-the-wild pattern. The detection methodology — building a precise rule from an observed header anomaly, validating, deploying — transfers directly to real-world packet-crafted attack detection.</li>
+  </ol>
+</section>
+
+
+<!-- ==========================================================
+     BOTTOM NAV
+     ========================================================== -->
+<nav class="case-nav" aria-label="Investigation navigation">
+  <a class="prev" href="one-of-us.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
+    <span>
+      <span class="label">Previous case</span>
+      One of Us — Malware Identification
+    </span>
+  </a>
+
+  <a class="index-link" href="../investigations.html">Index</a>
+
+  <a class="next" href="samba.html">
+    <span>
+      <span class="label">Next case</span>
+      Samba — SMB Service Recovery
+    </span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+  </a>
+</nav>
+
+
+</div>
+</main>
+
+
+<footer class="container">
+  <p>&copy; 2026 Leishka Pagan</p>
+</footer>
+
+
+<script src="../assets/js/main.js" defer></script>
+</body>
+</html>

