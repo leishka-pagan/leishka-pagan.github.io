@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experience — Leishka Pagan</title>
+<meta name="description" content="Nine-plus years across enterprise identity governance, cloud infrastructure, detection engineering, and incident response. From sole dispatch administrator at Time Warner to co-owning identity governance for 5,400+ users at Spectrum, to AI security systems engineering and externally graded IR work.">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css">
+
+<style>
+/* ============================================================
+   Experience page — page-specific layout.
+   Uses site tokens throughout.
+   Structural elements: page header, role blocks with
+   timeline treatment, tech skills matrix.
+   ============================================================ */
+
+/* -- page header ---------------------------------------------- */
+.exp-header {
+  padding: 3rem 0 2rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+}
+
+.exp-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+}
+
+.exp-title {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-bottom: 1rem;
+}
+
+.exp-subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  max-width: 720px;
+}
+
+
+/* -- role sections -------------------------------------------- */
+.role {
+  padding: 3rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.role:last-of-type {
+  border-bottom: none;
+}
+
+.role-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 1rem;
+}
+
+.role-meta span::before {
+  content: '▸ ';
+  color: var(--accent);
+}
+
+.role-title {
+  font-size: clamp(1.35rem, 2.2vw, 1.6rem);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  margin-bottom: 0.4rem;
+}
+
+.role-company {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.role-company strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.role-summary {
+  font-size: 0.98rem;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  margin-bottom: 1.5rem;
+  max-width: 760px;
+}
+
+
+/* -- role subsection groupings (for multi-domain roles) ------ */
+.role-group {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px dashed var(--border);
+}
+
+.role-group:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.role-group-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  margin-bottom: 0.9rem;
+}
+
+
+/* -- bullets -------------------------------------------------- */
+.role-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.role-bullets li {
+  position: relative;
+  padding-left: 1.4rem;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.role-bullets li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--accent);
+  font-size: 0.82rem;
+  line-height: 1.9;
+}
+
+.role-bullets li strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.role-bullets li code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82em;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  color: var(--text);
+}
+
+
+/* -- investigation cross-link inside Independent Practice ---- */
+.role-xlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  transition: var(--t-color), var(--t-border), var(--t-bg);
+  margin-top: 0.75rem;
+}
+
+.role-xlink:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+
+
+/* -- career break: quieter treatment -------------------------- */
+.role-break {
+  padding: 2rem 0;
+  border-bottom: 1px solid var(--border);
+  opacity: 0.85;
+}
+
+.role-break .role-meta {
+  margin-bottom: 0.5rem;
+}
+
+.role-break h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.6rem;
+}
+
+.role-break p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+  max-width: 640px;
+  margin: 0;
+}
+
+
+/* ============================================================
+   TECHNICAL SKILLS MATRIX
+   8 categories from résumé.
+   Two-column grid on desktop, one column on mobile.
+   ============================================================ */
+.skills-section {
+  padding: 3rem 0 5rem;
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+}
+
+.skills-section h2 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.skills-intro {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  max-width: 720px;
+  margin-bottom: 2rem;
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.skill-category {
+  padding: 1.25rem 1.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+}
+
+.skill-category-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.skill-category-body {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.75;
+}
+
+
+/* -- responsive ----------------------------------------------- */
+@media (max-width: 720px) {
+  .skills-grid { grid-template-columns: 1fr; }
+  .role-meta { gap: 0.75rem; }
+}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<nav class="nav" aria-label="Primary">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">Leishka Pagan</a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="investigations.html">Investigations</a>
+      <a href="experience.html">Experience</a>
+      <a href="proof.html">Proof</a>
+      <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</nav>
+
+
+<main id="main">
+<div class="container">
+
+
+<!-- ==========================================================
+     PAGE HEADER
+     ========================================================== -->
+<header class="exp-header">
+  <div class="exp-eyebrow">Experience</div>
+  <h1 class="exp-title">Nine-plus years across enterprise identity, cloud infrastructure, and security.</h1>
+  <p class="exp-subtitle">From sole dispatch administrator at Time Warner, to co-owning identity and access governance for 5,400+ field technicians at Spectrum, to AI security systems engineering and externally graded incident response. Each role shaped the one after it.</p>
+</header>
+
+
+<!-- ==========================================================
+     ROLE 1 — INDEPENDENT PRACTICE (current)
+     Most recent. Gets the heaviest treatment. Split into
+     three clear sub-domains matching the résumé structure.
+     ========================================================== -->
+<section class="role" aria-labelledby="role-independent-heading">
+
+  <div class="role-meta">
+    <span>2023 — 2026</span>
+    <span>Current</span>
+    <span>Independent Practice</span>
+  </div>
+
+  <h2 class="role-title" id="role-independent-heading">Cybersecurity Research &amp; AI Security Engineering</h2>
+  <p class="role-company"><strong>Independent Practice</strong> · Self-directed</p>
+
+  <p class="role-summary">Three years of self-directed work across AI security systems, detection engineering, and incident response. Each project carries its own deployable artifact — a running system, a custom rule, a graded IR report — rather than coursework output. Placed 3rd internationally in the Microsoft AI Innovation Challenge (March 2026) for one of the systems below.</p>
+
+
+  <!-- AI Security Systems -->
+  <div class="role-group">
+    <div class="role-group-label">AI Security Systems</div>
+    <ul class="role-bullets">
+      <li>Built <strong>Sentinel</strong>, a custom AI-powered vulnerability intelligence platform using a multi-agent architecture (Claude orchestrator, Queen + Alpha reasoning) with a formal finding state machine, OWASP ASVS/WSTG and MITRE ATT&amp;CK mapping, and a hard-scoped safety layer enforcing zero destructive actions. Produces evidence-backed JSON and Markdown reports with confirmed, refuted, and inconclusive classifications.</li>
+
+      <li>Served as <strong>Primary Engineer on ClearStep</strong>, an AI-powered decision-support application deployed across 10 Azure services, using a three-layer safety pipeline (Azure AI Content Safety, Azure OpenAI signal classification, Anthropic Claude reasoning). Built a Python validation layer enforcing prompt-injection mitigation and deterministic schema output. <strong>Placed 3rd internationally in the Microsoft AI Innovation Challenge (March 2026).</strong></li>
+
+      <li>Engineered <strong>AXIOM</strong>, an evidence-driven cybersecurity reasoning engine with a five-agent architecture and human-gated trust promotion. Implemented append-only evidence storage and a deterministic confidence scoring model across execution evidence, source quality, consensus, environment match, recency, and stability. Enforced structural boundaries preventing shadow reasoning. 134 tests executed.</li>
+    </ul>
+  </div>
+
+
+  <!-- Security Operations & Detection Engineering -->
+  <div class="role-group">
+    <div class="role-group-label">Security Operations &amp; Detection Engineering</div>
+    <ul class="role-bullets">
+      <li>Authored custom <strong>Snort IDS rules</strong> from live packet analysis, isolating malicious RDP traffic from baseline behavior and validating detection accuracy with a low false positive rate.</li>
+
+      <li>Built <strong>Splunk detection workflows</strong> using custom SPL queries, correlating logs across sources and reducing 3,000+ events to targeted IOCs, with all confirmed findings mapped to MITRE ATT&amp;CK techniques.</li>
+
+      <li>Conducted <strong>Windows event log threat hunting</strong> using Hayabusa, authored Sigma rules for cross-platform detection standardization, and performed memory forensics with Volatility to recover credentials from volatile memory.</li>
+
+      <li>Designed <strong>segmented multi-VLAN lab environments</strong> using Windows Server, pfSense, and Kali Linux to replicate enterprise conditions; performed network traffic analysis with Wireshark and tcpdump; validated IDS/IPS detections using Suricata and Zeek.</li>
+    </ul>
+  </div>
+
+
+  <!-- Incident Response & Investigations -->
+  <div class="role-group">
+    <div class="role-group-label">Incident Response &amp; Investigations</div>
+    <ul class="role-bullets">
+      <li>Completed <strong>externally graded IR investigations through IronCircle TDX Arena</strong>, earning TDX Arena IR Expert and CyberAdvantage certifications. Investigations included memory forensics for credential recovery, SIEM pivot analysis from exposed POP3 services, and malware identification in cases where AV failed detection.</li>
+
+      <li>Performed <strong>static malware analysis and reverse engineering</strong> on live samples, authoring YARA detection rules validated against multi-engine analysis.</li>
+    </ul>
+
+    <a class="role-xlink" href="investigations.html">
+      View the six documented investigations
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+  </div>
+
+</section>
+
+
+<!-- ==========================================================
+     ROLE 2 — METRO NET FIRE AUTHORITY
+     Medium weight. Senior Office Specialist but the real
+     technical story is the VBA automation and CJIS workflows.
+     ========================================================== -->
+<section class="role" aria-labelledby="role-metronet-heading">
+
+  <div class="role-meta">
+    <span>March 2024 — March 2025</span>
+    <span>Anaheim, CA</span>
+    <span>Senior Office Specialist</span>
+  </div>
+
+  <h2 class="role-title" id="role-metronet-heading">Infrastructure &amp; Operations Support</h2>
+  <p class="role-company"><strong>Metro Net Fire Authority</strong> · Dispatch communications, CJIS-aligned workflows</p>
+
+  <p class="role-summary">Supported uptime of dispatch communications equipment in a controlled-access 24/7 facility where downtime directly impacts 911 response. The role carried an "office specialist" title, but the work spanned hardware troubleshooting alongside engineering, evidentiary extraction for legal processes, and full-stack automation of the QA reporting pipeline.</p>
+
+  <ul class="role-bullets">
+    <li>Supported uptime of dispatch communications equipment in a controlled-access 24/7 facility where downtime directly impacts 911 response, working alongside engineering on hardware troubleshooting and change management.</li>
+
+    <li>Performed <strong>secure extraction of dispatch logs, call recordings, and radio communications</strong> in response to subpoenas, warrants, and records requests, ensuring evidentiary integrity and audit readiness within <strong>CJIS-aligned workflows</strong>.</li>
+
+    <li>Re-engineered the QA reporting workflow, building a <strong>VBA automation pipeline executing 240+ discrete actions per cycle</strong> and reducing manual processing time by 75–80%.</li>
+
+    <li>Extended automation end-to-end: data extraction from individual review workbooks, dictionary-based team assignment across 20+ dispatchers, auto-generated pivot analysis with conditional formatting, and Outlook-integrated PDF distribution.</li>
+
+    <li>Maintained data integrity within the <strong>Computer-Aided Dispatch (CAD) system</strong>, updating address records, coordinates, and response codes directly impacting routing accuracy and system reliability.</li>
+  </ul>
+
+</section>
+
+
+<!-- ==========================================================
+     CAREER BREAK
+     Honest treatment. One paragraph. Not hidden.
+     ========================================================== -->
+<section class="role-break" aria-labelledby="role-break-heading">
+
+  <div class="role-meta">
+    <span>2020 — 2023</span>
+    <span>Career Break</span>
+  </div>
+
+  <h2 id="role-break-heading">Full-time caregiver during COVID-19.</h2>
+  <p>Returned to technical practice via independent study and lab work in 2023. The Independent Practice work above is what came out of that return.</p>
+
+</section>
+
+
+<!-- ==========================================================
+     ROLE 3 — SPECTRUM / TIME WARNER CABLE
+     Professional anchor. Heaviest legacy role.
+     ========================================================== -->
+<section class="role" aria-labelledby="role-spectrum-heading">
+
+  <div class="role-meta">
+    <span>January 2014 — February 2020</span>
+    <span>Los Angeles, CA</span>
+    <span>6+ years</span>
+  </div>
+
+  <h2 class="role-title" id="role-spectrum-heading">Systems Administrator, Enterprise Infrastructure &amp; Identity</h2>
+  <p class="role-company"><strong>Spectrum</strong> · Formerly Time Warner Cable; retained through acquisition by Charter Communications (2016)</p>
+
+  <p class="role-summary">Advanced from sole administrator supporting 100+ dispatch agents to co-owning identity and access governance for 250–300 users across multiple facilities, one of two senior administrators on a four-person team. Served as the final escalation point for enterprise infrastructure, authentication, and workflow failures — the person who got called when other tiers ran out of answers.</p>
+
+  <ul class="role-bullets">
+    <li>Administered <strong>identity and access lifecycle for 5,400+ field technicians</strong> across enterprise platforms (ARRIS, CSG, SageQuest, Kronos, Avaya, Microsoft 365), enforcing RBAC and least-privilege access in SSO-enabled environments.</li>
+
+    <li>Served as the <strong>final escalation point</strong> for enterprise infrastructure, authentication, and workflow failures across regional dispatch operations, handling <strong>20–40+ escalations daily</strong> with volume spiking post-maintenance; resolved issues no other tier could and coordinated directly with ARRIS senior engineering to accelerate resolution.</li>
+
+    <li>Established <strong>real-time monitoring of call queue performance</strong> and handling thresholds across multiple truckyards; documented anomalies led to internal reviews and process corrections, improving compliance with handling policy.</li>
+
+    <li>Administered <strong>Active Directory identity lifecycle</strong> including user provisioning, GPO management, access governance enforcement, and authentication troubleshooting; executed proactive monitoring and remediation initiatives that <strong>reduced user-reported incidents by ~15%</strong>.</li>
+
+    <li>Conducted <strong>monthly access audits and event-driven reviews</strong> triggered by onboarding and offboarding, validating permissions across multiple enterprise systems with separate authentication environments to ensure no misconfigured or residual access remained.</li>
+
+    <li>Led <strong>infrastructure upgrades, patch lifecycle management, disaster recovery planning, and overnight maintenance windows</strong>; drove enterprise technology transitions including migration to iPad-based field workflows.</li>
+
+    <li>Developed <strong>operational SOPs, escalation playbooks, and visual job aids</strong> adopted across administrator and technician teams; led technical training across dispatch teams and supervisors, reducing recurring support requests and improving onboarding consistency.</li>
+  </ul>
+
+</section>
+
+
+<!-- ==========================================================
+     ROLE 4 — DISPATCHER II / TIME WARNER CABLE
+     Early-career context. Shorter by design.
+     ========================================================== -->
+<section class="role" aria-labelledby="role-dispatcher-heading">
+
+  <div class="role-meta">
+    <span>February 2012 — January 2014</span>
+    <span>Time Warner Cable</span>
+    <span>Early career</span>
+  </div>
+
+  <h2 class="role-title" id="role-dispatcher-heading">Dispatcher II, Operations Coordination</h2>
+  <p class="role-company"><strong>Time Warner Cable</strong> · Operations coordination</p>
+
+  <ul class="role-bullets">
+    <li>Promoted from <strong>Dispatcher I to Dispatcher II within 6 months</strong>; informally elevated to senior responsibilities within the first year.</li>
+
+    <li>Selected as <strong>sole pilot tester for the company's auto-routing system</strong> prior to enterprise rollout; validated functionality, identified issues, and provided feedback that led to company-wide approval and deployment.</li>
+  </ul>
+
+</section>
+
+
+<!-- ==========================================================
+     TECHNICAL SKILLS MATRIX
+     8 categories from the résumé. Each category is a block.
+     ========================================================== -->
+<section class="skills-section" aria-labelledby="skills-heading">
+
+  <h2 id="skills-heading">Technical Skills</h2>
+  <p class="skills-intro">Organized by the domain each tool operates in. Grouped the way the work actually spans — identity and cloud together, detection and SIEM together, forensics and RE where they live — rather than by certification category.</p>
+
+  <div class="skills-grid">
+
+    <div class="skill-category">
+      <div class="skill-category-name">Cloud &amp; Identity</div>
+      <div class="skill-category-body">Azure (App Service, Entra ID, Key Vault, Managed Identities, PIM, Conditional Access, AI Content Safety, Prompt Shields, AI Language, AI Speech, OpenAI, Blob Storage, Cosmos DB, Application Insights) · Microsoft Foundry · AWS IAM · Active Directory · Microsoft 365 · RBAC · MFA · SSO · Identity Governance · RADIUS/TACACS+ · 802.1X · GPO · DefaultAzureCredential</div>
+    </div>
+
+    <div class="skill-category">
+      <div class="skill-category-name">AI Security &amp; LLM Engineering</div>
+      <div class="skill-category-body">Prompt injection mitigation (XML delimiting) · Multi-layer safety pipelines · Content safety / guardrails · Structured output validation · Multi-agent architecture · Anthropic Claude API · Azure OpenAI · OWASP ASVS/WSTG · MITRE ATT&amp;CK mapping</div>
+    </div>
+
+    <div class="skill-category">
+      <div class="skill-category-name">Detection &amp; SIEM</div>
+      <div class="skill-category-body">Splunk (custom SPL authoring) · Sigma rules · Snort (custom rule authoring from packet analysis) · Suricata · Zeek · Hayabusa · Chainsaw · DeepBlueCLI · IDS/IPS detection engineering · Detection rule tuning</div>
+    </div>
+
+    <div class="skill-category">
+      <div class="skill-category-name">DFIR &amp; Forensics</div>
+      <div class="skill-category-body">Volatility3 · Autopsy · KAPE · Velociraptor · Memory forensics · Timeline analysis · IOC extraction · Cryptographic hash verification · Evidence integrity · UTF-16 / Base64 payload analysis</div>
+    </div>
+
+    <div class="skill-category">
+      <div class="skill-category-name">Malware Analysis &amp; Reverse Engineering</div>
+      <div class="skill-category-body">Ghidra · x64dbg · PeStudio · YARA · ClamAV · VirusTotal multi-engine analysis · Static analysis</div>
+    </div>
+
+    <div class="skill-category">
+      <div class="skill-category-name">Network &amp; Infrastructure</div>
+      <div class="skill-category-body">LAN/WAN · VLAN segmentation · pfSense · Firewall policy · Network segmentation · Patch management · System hardening · Wireshark · tcpdump · Nmap · Samba/SMB · POP3/SMTP · RDP · DNS · TCP/IP analysis · VPN (IPSec) · Zero Trust</div>
+    </div>
+
+    <div class="skill-category">
+      <div class="skill-category-name">Development</div>
+      <div class="skill-category-body">Python (Flask, Pydantic) · PowerShell · Bash · JavaScript · HTML/CSS · SQL (SQLite) · Excel VBA · REST API design · CI/CD (GitHub Actions) · Git · Gunicorn · Docker</div>
+    </div>
+
+    <div class="skill-category">
+      <div class="skill-category-name">Vulnerability Assessment</div>
+      <div class="skill-category-body">Burp Suite · Metasploit · OSINT · Nmap · Authorized VDP research (Bugcrowd)</div>
+    </div>
+
+  </div>
+</section>
+
+
+</div>
+</main>
+
+
+<footer class="container">
+  <p>&copy; 2026 Leishka Pagan</p>
+</footer>
+
+
+<script src="assets/js/main.js" defer></script>
+</body>
+</html>
