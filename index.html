@@ -328,18 +328,19 @@ footer { background: var(--ink-deep); border-top: 1px solid var(--light-line); c
   .nav.open { display: flex; }
   .nav a { border-bottom: 1px solid var(--light-line); padding: 1rem 0; }
   .nav a::after { display: none; }
-  .hero { min-height: 1240px; padding-top: 68px; }
-  .hero::before { inset: 68px 0 0; }
-  .dark-field { clip-path: polygon(100% 39%,100% 100%,0 100%,0 58%,55% 50%,100% 50%); inset: 68px 0 0; }
-  .code-a { display: none; }
-  .code-b { left: auto; right: 1rem; top: 7rem; }
-  .hero-copy { left: 1.25rem; top: 112px; width: calc(100% - 2.5rem); }
+  /* Mobile hero: normal document flow (no absolute offsets). Reading order:
+     copy -> detail panel -> career architecture. */
+  .hero { min-height: 0; overflow: visible; padding-top: 68px; }
+  .hero::before { display: none; }
+  .dark-field { display: none; }
+  .code-a, .code-b { display: none; }
+  .hero-copy { position: static; width: auto; max-width: none; padding: 2.5rem 1.25rem 0; }
   .hero h1 { font-size: clamp(3.1rem, 14vw, 4.6rem); }
   .intro { font-size: .93rem; }
   .actions { align-items: flex-start; flex-direction: column; gap: .7rem; }
-  .control-detail { left: 1.25rem; right: auto; top: 660px; width: calc(100% - 2.5rem); }
-  .architecture { bottom: 48px; padding: 0 1rem; }
-  .architecture-title { color: var(--paper); margin-left: .2rem; }
+  .control-detail { position: static; width: auto; margin: 2.75rem 1.25rem 0; }
+  .architecture { position: static; width: auto; margin-top: 3rem; padding: 2.75rem 1.25rem 3.25rem; background: var(--ink); }
+  .architecture-title { color: var(--paper); margin-left: 0; }
   .architecture-title small { color: rgba(248,241,229,.52); }
   .route { display: flex; gap: .6rem; min-height: 150px; overflow-x: auto; padding: .5rem .2rem 1rem; scroll-snap-type: x mandatory; }
   .route-map, .route-note { display: none; }
